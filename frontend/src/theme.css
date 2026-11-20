@@ -1,0 +1,217 @@
+/* ReliefRelay design tokens and component styles: the ONE theme file.
+   Two looks, picked per role on the app root:
+     .calm     light, high contrast, big targets, minimal motion (citizen, volunteer, ngo)
+     .mission  dark "mission control" with a gradient mesh (coordinator, login hero)
+   Rules: blur only on floating panels (.glass); neumorphism only on soft controls (.neu-*);
+   animation on transform/opacity only; everything honours prefers-reduced-motion. */
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  /* shape + depth */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --blur: 14px;
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.06);
+  --shadow-float: 0 18px 40px -12px rgb(2 6 23 / 0.45), 0 4px 10px rgb(2 6 23 / 0.2);
+  /* motion */
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 480ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* calm (light) palette */
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #cbd5e1;
+  --accent: #1d4ed8;
+  --accent-ink: #ffffff;
+  --focus: #1d4ed8;
+  --glass-bg: rgb(255 255 255 / 0.72);
+  --glass-solid: #ffffff;
+  --glass-border: rgb(255 255 255 / 0.6);
+
+  /* status lights */
+  --led-red: #ef4444; --led-amber: #f59e0b; --led-blue: #3b82f6; --led-green: #22c55e; --led-gray: #94a3b8; --led-purple: #a855f7;
+  /* pills: [background, text] pairs, AA on their own background */
+  --pill-gray-bg: #e2e8f0;   --pill-gray-fg: #1e293b;
+  --pill-blue-bg: #dbeafe;   --pill-blue-fg: #1e3a8a;
+  --pill-green-bg: #dcfce7;  --pill-green-fg: #14532d;
+  --pill-amber-bg: #fef3c7;  --pill-amber-fg: #78350f;
+  --pill-red-bg: #fee2e2;    --pill-red-fg: #7f1d1d;
+  --pill-purple-bg: #f3e8ff; --pill-purple-fg: #581c87;
+
+  --neu-bg: #e9eef5;
+  --neu-hi: #ffffff;
+  --neu-lo: #c5cfdd;
+  color-scheme: light;
+}
+
+.mission {
+  --bg: #0a1020;
+  --surface: #111a2f;
+  --surface-2: #18243f;
+  --text: #e8eefc;
+  --muted: #a8b6d4;
+  --border: #2b3b60;
+  --accent: #60a5fa;
+  --focus: #93c5fd;
+  --glass-bg: rgb(17 26 47 / 0.62);
+  --glass-solid: #111a2f;
+  --glass-border: rgb(148 170 220 / 0.22);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.28);
+  --pill-gray-bg: #26334f;   --pill-gray-fg: #dbe5fb;
+  --pill-blue-bg: #1e3a6e;   --pill-blue-fg: #cfe1ff;
+  --pill-green-bg: #14532d;  --pill-green-fg: #d1fae5;
+  --pill-amber-bg: #5a3a0b;  --pill-amber-fg: #fde8b0;
+  --pill-red-bg: #6b1d1d;    --pill-red-fg: #ffe0e0;
+  --pill-purple-bg: #4a2373; --pill-purple-fg: #f0e1ff;
+  --neu-bg: #18243f;
+  --neu-hi: #22325a;
+  --neu-lo: #0c1428;
+  color-scheme: dark;
+}
+
+html { font-size: 16px; }
+html.large-text { font-size: 21px; } /* every rem-based size, spacing and the map heights scale with it */
+body { font-family: var(--font-sans); background: var(--bg); color: var(--text); }
+h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+*, ::before, ::after { border-color: var(--border); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- app root ---------- */
+.app-root { min-height: 100vh; background: var(--bg); color: var(--text); }
+.mission.app-root, .mission.hero {
+  background:
+    radial-gradient(60rem 36rem at 10% -10%, rgb(37 99 235 / 0.28), transparent 60%),
+    radial-gradient(50rem 30rem at 95% 0%, rgb(124 58 237 / 0.2), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 110%, rgb(14 165 233 / 0.14), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.calm.app-root { background: linear-gradient(180deg, #eaf1fb 0, var(--bg) 18rem); }
+.page-enter { animation: page-in var(--dur-slow) var(--ease-out) both; }
+
+/* ---------- surfaces ---------- */
+.rr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
+.rr-card-head { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; }
+.glass { background: var(--glass-solid); border: 1px solid var(--glass-border); box-shadow: var(--shadow-float); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5); backdrop-filter: blur(var(--blur)) saturate(1.5); }
+}
+.float-map { border-radius: var(--radius-lg); box-shadow: var(--shadow-float); border: 1px solid var(--border); overflow: hidden; transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+.float-map:hover { transform: translateY(-3px); }
+.map-overlay { position: absolute; z-index: 1000; left: 0.75rem; bottom: 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); font-size: 0.75rem; color: var(--text); }
+.mission .leaflet-tile-pane { filter: invert(1) hue-rotate(200deg) brightness(0.85) contrast(0.9) saturate(0.7); }
+
+/* ---------- pills + LEDs (skeuomorphic status lights) ---------- */
+.led { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 9999px; flex: none; background: var(--c); box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.35), inset 0 1px 1px rgb(255 255 255 / 0.5), 0 0 0 1px rgb(0 0 0 / 0.25); }
+.led-glow { box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.3), inset 0 1px 1px rgb(255 255 255 / 0.55), 0 0 0.5rem 0.1rem var(--c); }
+.led-pulse { animation: led-pulse 1.6s ease-in-out infinite; }
+.pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 9999px; padding: 0.15rem 0.65rem 0.15rem 0.5rem; font-size: 0.75rem; font-weight: 600; line-height: 1.25rem; background: var(--pb); color: var(--pf); }
+.tone-gray   { --pb: var(--pill-gray-bg);   --pf: var(--pill-gray-fg);   --c: var(--led-gray); }
+.tone-blue   { --pb: var(--pill-blue-bg);   --pf: var(--pill-blue-fg);   --c: var(--led-blue); }
+.tone-green  { --pb: var(--pill-green-bg);  --pf: var(--pill-green-fg);  --c: var(--led-green); }
+.tone-amber  { --pb: var(--pill-amber-bg);  --pf: var(--pill-amber-fg);  --c: var(--led-amber); }
+.tone-red    { --pb: var(--pill-red-bg);    --pf: var(--pill-red-fg);    --c: var(--led-red); }
+.tone-purple { --pb: var(--pill-purple-bg); --pf: var(--pill-purple-fg); --c: var(--led-purple); }
+
+/* ---------- physical button (Approve / Verify) ---------- */
+.btn-physical {
+  position: relative; color: #fff; font-weight: 700; border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 55%, #1e40af 100%);
+  border: 1px solid #1e3a8a;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -2px 0 rgb(0 0 0 / 0.25), 0 3px 0 #172554, 0 8px 14px rgb(2 6 23 / 0.35);
+  text-shadow: 0 -1px 0 rgb(0 0 0 / 0.35);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast);
+}
+.btn-physical:hover { filter: brightness(1.08); }
+.btn-physical:active { transform: translateY(3px); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.4), 0 0 0 #172554, 0 2px 4px rgb(2 6 23 / 0.3); }
+.btn-physical:disabled { filter: grayscale(0.6); }
+.rr-btn { transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast), border-color var(--dur-fast); }
+.rr-btn:not(:disabled):active { transform: scale(0.97); }
+
+/* ---------- neumorphic soft controls (switches, segmented, meters; never text content) ---------- */
+.neu-switch { position: relative; width: 3.25rem; height: 1.75rem; border-radius: 9999px; border: 0; background: var(--neu-bg); box-shadow: inset 3px 3px 6px var(--neu-lo), inset -3px -3px 6px var(--neu-hi); cursor: pointer; flex: none; }
+.neu-switch::after { content: ""; position: absolute; top: 0.2rem; left: 0.2rem; width: 1.35rem; height: 1.35rem; border-radius: 9999px; background: var(--neu-bg); box-shadow: 2px 2px 5px var(--neu-lo), -2px -2px 5px var(--neu-hi); transition: transform var(--dur-base) var(--ease-spring), background-color var(--dur-base); }
+.neu-switch[aria-checked="true"]::after { transform: translateX(1.5rem); background: var(--accent); }
+.neu-segment { display: inline-flex; gap: 0.25rem; padding: 0.3rem; border-radius: 9999px; background: var(--neu-bg); box-shadow: inset 3px 3px 6px var(--neu-lo), inset -3px -3px 6px var(--neu-hi); }
+.neu-segment button { border: 0; border-radius: 9999px; padding: 0.4rem 0.9rem; min-height: 2.25rem; font-size: 0.875rem; font-weight: 600; color: var(--muted); background: transparent; cursor: pointer; }
+.neu-segment button[aria-checked="true"] { color: var(--text); background: var(--neu-bg); box-shadow: 2px 2px 5px var(--neu-lo), -2px -2px 5px var(--neu-hi); }
+.neu-meter { height: 0.9rem; border-radius: 9999px; background: var(--neu-bg); box-shadow: inset 2px 2px 4px var(--neu-lo), inset -2px -2px 4px var(--neu-hi); overflow: hidden; }
+.neu-meter > i { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(90deg, #3b82f6, #22d3ee); transform-origin: left; animation: bar-grow var(--dur-slow) var(--ease-out) both; }
+
+/* ---------- 3D ---------- */
+.tilt { transform-style: preserve-3d; transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base); will-change: transform; }
+.tilt-wrap { perspective: 900px; }
+.parallax { perspective: 1000px; }
+.parallax > .layer { transition: transform 120ms linear; will-change: transform; }
+.timeline-3d { perspective: 1100px; }
+.timeline-3d > li { transform: rotateX(var(--rx, 0deg)) translateZ(0); transform-origin: top center; transition: transform var(--dur-base) var(--ease-out); }
+.timeline-3d > li:hover { transform: translateZ(14px) scale(1.01); }
+
+/* ---------- chat ---------- */
+.bubble { animation: bubble-in var(--dur-base) var(--ease-spring) both; transform-origin: bottom; }
+.bubble-mine { background: #1d4ed8; color: #fff; }
+.bubble-theirs { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.typing i { display: inline-block; width: 0.35rem; height: 0.35rem; margin: 0 0.1rem; border-radius: 9999px; background: currentColor; animation: typing 1.1s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; } .typing i:nth-child(3) { animation-delay: 0.3s; }
+
+/* ---------- skeleton, toast, lists ---------- */
+.skeleton { background: linear-gradient(90deg, var(--surface-2) 0, color-mix(in srgb, var(--surface-2) 60%, var(--text) 8%) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: var(--radius-sm); }
+.toast { animation: toast-in var(--dur-base) var(--ease-spring) both; }
+.check-path { stroke-dasharray: 26; stroke-dashoffset: 26; animation: draw 0.45s 0.1s var(--ease-out) forwards; }
+.stagger > * { animation: rise var(--dur-slow) var(--ease-out) both; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; } .stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; } .stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; } .stagger > *:nth-child(n+7) { animation-delay: 300ms; }
+.count--anim { color: transparent; position: relative; }
+.count--anim::after { content: attr(data-live); position: absolute; left: 0; top: 0; color: var(--text); }
+.gauge-needle { transition: transform var(--dur-slow) var(--ease-spring); transform-origin: 50px 50px; }
+
+/* pulsing ring under critical map markers (SVG path, scaled from its own centre) */
+.pulse-ring { transform-box: fill-box; transform-origin: center; animation: ring 1.8s ease-out infinite; pointer-events: none; }
+
+@keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes bubble-in { from { opacity: 0; transform: scale(0.85) translateY(6px); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } }
+@keyframes bar-grow { from { transform: scaleX(0); } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-0.25rem); opacity: 1; } }
+@keyframes ring { from { transform: scale(0.6); opacity: 0.9; } to { transform: scale(2.4); opacity: 0; } }
+@keyframes led-pulse { 50% { opacity: 0.45; } }
+
+/* ---------- legacy utility remap: lets existing pages (written with light Tailwind classes) read well on the dark theme ---------- */
+.mission .bg-white { background-color: var(--surface); }
+.mission .bg-slate-50, .mission .bg-slate-100 { background-color: var(--surface-2); }
+.mission .hover\:bg-slate-100:hover { background-color: var(--surface-2); }
+.mission .text-slate-900 { color: var(--text); }
+.mission .text-slate-400, .mission .text-slate-500, .mission .text-slate-600, .mission .text-slate-700 { color: var(--muted); }
+.mission .text-blue-700, .mission .text-blue-800 { color: #93c5fd; }
+.mission .text-red-700 { color: #fca5a5; }
+.mission .text-amber-700, .mission .text-amber-800 { color: #fcd34d; }
+.mission .border-slate-100, .mission .border-slate-200, .mission .border-slate-300 { border-color: var(--border); }
+.mission .hover\:border-blue-400:hover { border-color: #60a5fa; }
+.mission input:not([type="checkbox"]), .mission select, .mission textarea { background-color: var(--surface-2); color: var(--text); border-color: var(--border); }
+.mission ::placeholder { color: var(--muted); }
+.mission .leaflet-popup-content, .mission .leaflet-popup-content strong { color: #0f172a; }
+
+/* ---------- larger touch targets for the calm (citizen / volunteer) look ---------- */
+.calm button, .calm select, .calm input:not([type="checkbox"]) { min-height: 2.5rem; }
+
+/* ---------- reduced motion: no tilt, parallax, counters, pulses or entrance animation ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  .tilt, .parallax > .layer, .timeline-3d > li, .float-map { transform: none !important; }
+  .pulse-ring, .led-pulse { animation: none !important; }
+}

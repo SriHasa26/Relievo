@@ -3,15 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", {
+const badgeVariants = cva("pill !pl-2.5", {
   variants: {
     tone: {
-      gray: "bg-slate-100 text-slate-700",
-      blue: "bg-blue-100 text-blue-800",
-      green: "bg-green-100 text-green-800",
-      amber: "bg-amber-100 text-amber-900",
-      red: "bg-red-100 text-red-800",
-      purple: "bg-purple-100 text-purple-800",
+      gray: "tone-gray", blue: "tone-blue", green: "tone-green",
+      amber: "tone-amber", red: "tone-red", purple: "tone-purple",
     },
   },
   defaultVariants: { tone: "gray" },

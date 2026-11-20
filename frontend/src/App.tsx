@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout, RequireRole } from "@/components/Layout";
 import CommandCentre from "@/pages/CommandCentre";
@@ -12,6 +13,9 @@ import NewRequest from "@/pages/NewRequest";
 import { useAuth } from "@/lib/auth";
 import { HOME } from "@/lib/types";
 
+// Dev-only gallery: `import.meta.env.DEV` is false in production builds, so the page is tree-shaken out.
+const UiKit = import.meta.env.DEV ? lazy(() => import("@/pages/UiKit")) : null;
+
 function Home() {
   const { user } = useAuth();
   return <Navigate to={user ? HOME[user.role] : "/login"} replace />;
@@ -21,6 +25,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {UiKit && <Route path="/ui-kit" element={<Suspense fallback={null}><UiKit /></Suspense>} />}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/citizen" element={<RequireRole roles={["citizen"]}><IncidentList title="My requests" /></RequireRole>} />
