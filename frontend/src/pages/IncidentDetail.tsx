@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, PackageCheck } from "lucide-react";
 import { StatusBadge, SyntheticBadge, UrgencyBadge } from "@/components/badges";
 import { DirectMessages } from "@/components/DirectMessages";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { RoomChat } from "@/components/RoomChat";
 import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
+import { SkeletonList, UrgencyGauge } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -42,7 +44,7 @@ export default function IncidentDetail() {
 
   // Nothing loaded yet: show the error (or a spinner). Once loaded, a failed refresh only shows a banner, below.
   if (!data && error) return <p role="alert" className="text-red-700">{error}</p>;
-  if (!data || !user) return <p>Loading…</p>;
+  if (!data || !user) return <div className="mx-auto max-w-3xl"><SkeletonList rows={3} /></div>;
   const { incident } = data;
   const isCoordinator = user.role === "coordinator";
   const activeAssignment = data.assignments.find((a) => a.status === "approved" || a.status === "accepted");
@@ -58,9 +60,10 @@ export default function IncidentDetail() {
           <Button size="sm" variant="outline" onClick={() => void load()}>Retry</Button>
         </div>
       )}
-      <Link to={isCoordinator ? "/coordinator" : "/"} className="text-sm text-blue-700">← Back</Link>
+      <Link to={isCoordinator ? "/coordinator" : "/"} className="inline-flex items-center gap-1 text-sm font-medium text-blue-700"><ArrowLeft className="size-4" aria-hidden />Back</Link>
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-semibold capitalize">{label(incident.category)} request</h1>
+        <UrgencyGauge urgency={incident.urgency} size={64} />
+        <h1 className="text-2xl font-bold capitalize">{label(incident.category)} request</h1>
         <UrgencyBadge urgency={incident.urgency} />
         <StatusBadge status={incident.status} />
         {incident.is_synthetic && <SyntheticBadge />}
@@ -99,7 +102,7 @@ export default function IncidentDetail() {
 
       {isCoordinator && data.allocations.length > 0 && (
         <Card>
-          <CardHeader><CardTitle>Relief resources allocated</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><PackageCheck className="size-4" aria-hidden />Relief resources allocated</CardTitle></CardHeader>
           <CardContent>
             <ul className="list-disc pl-5 text-sm">
               {data.allocations.map((a) => <li key={a.id}>{a.allocated_quantity} × {a.resource_name}</li>)}

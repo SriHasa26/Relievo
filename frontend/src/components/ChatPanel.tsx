@@ -4,6 +4,7 @@ import {
   getHistory, isMockChat, joinRoom, leaveRoom, onConnectionStatus, onMessage, sendDirectMessage, sendGroupMessage,
   type ChatMessage, type ConnectionStatus, type Conversation,
 } from "@/integrations/nexconnClient";
+import { MessagesSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ensureConnected } from "@/lib/chat";
@@ -70,9 +71,10 @@ export function ChatPanel({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="glass rounded-none border-x-0 border-t-0 shadow-none">
+        <CardTitle className="flex flex-wrap items-center gap-2">
+          <MessagesSquare className="size-4" aria-hidden />
           {title}
           {isMockChat && (
             <span className="ml-2 text-xs font-normal text-amber-700">mock chat (not Nexconn)</span>
@@ -80,16 +82,16 @@ export function ChatPanel({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="h-64 space-y-2 overflow-y-auto rounded bg-slate-50 p-2" aria-live="polite">
+        <div className="h-72 space-y-2 overflow-y-auto rounded-lg bg-slate-50 p-2" aria-live="polite">
           {messages.length === 0 && <p className="text-sm text-slate-500">No messages yet.</p>}
           {messages.map((m) => {
             const mine = m.senderId === me;
             return (
               <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[80%] rounded-lg px-3 py-1.5 text-sm", mine ? "bg-blue-700 text-white" : "bg-white shadow-sm")}>
+                <div className={cn("bubble max-w-[80%] rounded-2xl px-3 py-1.5 text-sm", mine ? "bubble-mine rounded-br-sm" : "bubble-theirs rounded-bl-sm")}>
                   {!mine && <div className="text-xs font-semibold text-slate-500">{names[m.senderId] ?? "Someone"}</div>}
                   {m.text}
-                  <div className={cn("text-[10px]", mine ? "text-blue-100" : "text-slate-400")}>
+                  <div className={cn("text-[0.65rem]", mine ? "text-blue-100" : "text-slate-500")}>
                     {new Date(m.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
@@ -98,9 +100,11 @@ export function ChatPanel({
           })}
           <div ref={bottom} />
         </div>
-        <p className="text-xs text-slate-500">
-          Chat: {status === "connected" ? "connected" : status === "connecting" ? "connecting…" : "disconnected"}
-        </p>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <i aria-hidden className={cn("led", status === "connected" ? "tone-green led-glow" : status === "connecting" ? "tone-amber led-glow led-pulse" : "tone-red")} />
+          <p>Chat: {status === "connected" ? "connected" : status === "connecting" ? "connecting…" : "disconnected"}</p>
+          {status === "connecting" && <span className="typing" aria-hidden><i /><i /><i /></span>}
+        </div>
         {error && (
           <div role="alert" className="flex items-center gap-2 text-sm text-red-700">
             <span>Chat problem: {error}</span>
@@ -109,8 +113,8 @@ export function ChatPanel({
         )}
         <form onSubmit={send} className="flex gap-2">
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message…" aria-label="Message"
-            className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm" />
-          <Button type="submit">Send</Button>
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <Button type="submit"><Send className="size-4" aria-hidden />Send</Button>
         </form>
       </CardContent>
     </Card>

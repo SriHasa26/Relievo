@@ -1,6 +1,8 @@
 // Private coordinator <-> volunteer messages. The contact list comes from the backend: nobody else is offered.
 import { useEffect, useState } from "react";
 import { ChatPanel } from "@/components/ChatPanel";
+import { MessageSquare } from "lucide-react";
+import { EmptyState, Skeleton } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
@@ -17,9 +19,9 @@ export function DirectMessages({ preferId }: { preferId?: string }) {
     }).catch(() => setContacts([]));
   }, [preferId]);
 
-  if (contacts === null) return <p className="text-sm">Loading contacts…</p>;
+  if (contacts === null) return <Skeleton className="h-80 rounded-2xl" />;
   if (contacts.length === 0) {
-    return <p className="text-sm text-slate-600">No one to message yet. Contacts appear once you work with a coordinator or volunteer.</p>;
+    return <EmptyState icon={<MessageSquare className="size-6" />} title="No one to message yet" hint="Contacts appear once you work with a coordinator or volunteer." />;
   }
   const current = contacts.find((c) => c.id === selected);
   return (
