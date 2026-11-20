@@ -54,10 +54,8 @@ Done: real Nexconn chat behind the two adapters (`MOCK_CHAT=false`), intake, moc
 accept/decline/reassign/resolve, rooms + DMs (mock), resources, impact, timeline, event log.
 
 Not wired yet (by design):
-- Real Gemini (`geminiExtract` in `extraction.ts`; falls back to keywords).
-- Supabase at runtime: schema and RLS are in `supabase/migrations`, and `npm run seed:supabase -w backend`
-  exists but is **untested** (no project yet). The API currently reads the in-memory store and uses mock sessions
-  (`auth.ts`), so a real-mode store and JWT verification still have to be written.
+- Gemini (`geminiExtract` in `extraction.ts` is a placeholder; the chain skips it).
+- Supabase has not been run against a real project yet (see "Supabase and AI" below for what is verified).
 - Voice input (SHOULD), deployment.
 
 Known mock limits: system messages posted by the backend adapter do not appear in the frontend mock chat.
@@ -82,3 +80,26 @@ Manual check with two browsers (use two different browser profiles, or one norma
 third for the refusal checks. Needs `MOCK_CHAT=false` / `VITE_MOCK_CHAT=false` in your `.env` files. First time only:
 `cd e2e && npm install && npx playwright install chromium`. Screenshots go to `e2e/screenshots/` (git-ignored).
 Stop any dev server that is already running with mock flags first: the test refuses to run against `MOCK_CHAT=true`.
+
+## Supabase and AI (MOCK_DB=false, MOCK_AI=false)
+Data access goes through one interface, `backend/src/store/repo.ts`: `memoryRepo.ts` (MOCK_DB=true) or `supabaseRepo.ts`
+(MOCK_DB=false, service-role key, backend only). Setup:
+1. Supabase SQL editor: paste and run `supabase/all_migrations.sql` once.
+2. `backend/.env`: `SUPABASE_URL` (https://&lt;ref&gt;.supabase.co), `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MOCK_DB=false`;
+   `frontend/.env`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+3. `npm run seed:supabase -w backend` (creates Auth users with password `demo1234`, rows, stored AI analyses, Nexconn rooms).
+4. `npm run verify:supabase -w backend` (data layer, JWT check and RLS checks, PASS/FAIL).
+
+Who enforces what: the **backend** (service-role key, bypasses RLS) enforces every rule in the API: role checks, who may see an
+incident, hard matching exclusions, one active assignment, room membership, token userId from the verified JWT.
+**RLS** protects the same data against direct access with the anon key (citizens: own incidents; volunteers: assigned
+incidents; coordinators: all; nobody can write events/assignments/channels/allocations from a browser).
+The database also enforces one active assignment per incident (unique index).
+
+AI order: OpenRouter (`OPENROUTER_MODEL`, then `openrouter/free`) -> Gemini (only if `GEMINI_API_KEY`; not implemented yet) -> keyword
+extractor. Answers are cached by report text, calls are at least 3 s apart, and the seed script stores an analysis for every seeded
+incident. The coordinator sees "AI via OpenRouter" / "Fallback" next to the AI suggestion. Output is always validated and
+`requires_human_verification` stays true.
+
+`DEMO_LOGIN=true` (default) shows the role switcher with the shared demo password for the synthetic accounts. Set it to `false`
+for anything public.

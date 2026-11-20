@@ -4,6 +4,7 @@
 create table public.users (
   id uuid primary key references auth.users (id) on delete cascade,
   name text not null,
+  email text unique,                              -- copy of the Auth email, used for the demo role switcher
   role text not null check (role in ('citizen', 'volunteer', 'coordinator', 'ngo')),
   phone text,
   verified boolean not null default false,
@@ -54,7 +55,7 @@ create table public.incident_ai_analysis (
   extracted_data jsonb not null,
   confidence numeric not null,
   model_version text not null,
-  source text not null check (source in ('gemini', 'fallback', 'mock'))
+  source text not null check (source in ('openrouter', 'gemini', 'fallback', 'mock'))  -- which provider answered
 );
 
 create table public.assignments (

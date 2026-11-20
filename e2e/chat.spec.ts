@@ -123,6 +123,18 @@ test("4 offline: disconnected state, retry, messages flow again", async () => {
   await shot(vol, "04-back-online");
 });
 
+test("4b incident page stays mounted offline and shows a banner with retry", async () => {
+  await vol.goto(`/incidents/${INCIDENT}`);
+  await connected(vol);
+  await volCtx.setOffline(true);
+  await expect(vol.getByText(/Could not refresh this incident/)).toBeVisible({ timeout: 30_000 });
+  await expect(vol.getByLabel("Message").first()).toBeVisible(); // chat panel is still there
+  await shot(vol, "04b-incident-offline-banner");
+  await volCtx.setOffline(false);
+  await vol.getByRole("button", { name: "Retry" }).first().click();
+  await expect(vol.getByText(/Could not refresh this incident/)).toHaveCount(0, { timeout: 30_000 });
+});
+
 test("5 authorisation: unassigned volunteer and the citizen are refused", async () => {
   const cases: Array<[string, RegExp]> = [["unassigned-volunteer", /^Sana Khan/], ["citizen", /^Meena Iyer/]];
   for (const [label, name] of cases) {

@@ -34,7 +34,7 @@ export interface Extraction {
 }
 export interface Analysis {
   incident_id: string; extracted_data: Extraction; confidence: number; model_version: string;
-  source: "gemini" | "fallback" | "mock";
+  source: "openrouter" | "gemini" | "fallback" | "mock";
 }
 
 export interface ScoreBreakdown { D: number; K: number; A: number; C: number; total: number; distance_km: number }

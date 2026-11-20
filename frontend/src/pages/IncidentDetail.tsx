@@ -6,6 +6,7 @@ import { DispatchPanel } from "@/components/DispatchPanel";
 import { RoomChat } from "@/components/RoomChat";
 import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -39,7 +40,8 @@ export default function IncidentDetail() {
     return () => clearInterval(t);
   }, [load]);
 
-  if (error) return <p role="alert" className="text-red-700">{error}</p>;
+  // Nothing loaded yet: show the error (or a spinner). Once loaded, a failed refresh only shows a banner, below.
+  if (!data && error) return <p role="alert" className="text-red-700">{error}</p>;
   if (!data || !user) return <p>Loading…</p>;
   const { incident } = data;
   const isCoordinator = user.role === "coordinator";
@@ -50,6 +52,12 @@ export default function IncidentDetail() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <span>Could not refresh this incident: {error}. What you see may be out of date.</span>
+          <Button size="sm" variant="outline" onClick={() => void load()}>Retry</Button>
+        </div>
+      )}
       <Link to={isCoordinator ? "/coordinator" : "/"} className="text-sm text-blue-700">← Back</Link>
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold capitalize">{label(incident.category)} request</h1>

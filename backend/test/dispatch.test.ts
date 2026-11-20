@@ -16,7 +16,7 @@ beforeEach(() => resetDb(buildSeed()));
 
 describe("matching list", () => {
   it("excludes busy Imran and unverified Divya, with reasons", async () => {
-    const m = matchesFor(FOOD);
+    const m = await matchesFor(FOOD);
     expect(m.find((x) => x.volunteer_id === uid(12))).toMatchObject({ eligible: false });
     expect(m.find((x) => x.volunteer_id === uid(13))).toMatchObject({ eligible: false });
     expect(m.filter((x) => x.eligible).map((x) => x.volunteer_id)).toEqual(
@@ -26,11 +26,11 @@ describe("matching list", () => {
   });
 
   it("shows nobody eligible for a rescue task when the only certified volunteer is busy", async () => {
-    expect(matchesFor(RESCUE).some((m) => m.eligible)).toBe(false);
+    expect((await matchesFor(RESCUE)).some((m) => m.eligible)).toBe(false);
   });
 
   it("only serves verified incidents", async () => {
-    expect(() => matchesFor(uid(101))).toThrow(/verified/);
+    await expect(matchesFor(uid(101))).rejects.toThrow(/verified/);
   });
 });
 
@@ -40,7 +40,7 @@ describe("approve, accept, decline", () => {
     expect(a.status).toBe("approved");
     expect(a.score_breakdown?.total).toBeGreaterThan(0);
     expect(incident(FOOD).status).toBe("assigned");
-    expect(incidentEvents(coordinator(), FOOD).map((e) => e.action)).toContain("assigned");
+    expect((await incidentEvents(coordinator(), FOOD)).map((e) => e.action)).toContain("assigned");
   });
 
   it("refuses an ineligible volunteer even if the UI asks for one", async () => {
@@ -59,9 +59,9 @@ describe("approve, accept, decline", () => {
     const a = await assignVolunteer(coordinator(), FOOD, sana().id);
     await respondToAssignment(sana(), a.id, false);
     expect(incident(FOOD).status).toBe("verified");
-    const sanaRow = matchesFor(FOOD).find((m) => m.volunteer_id === sana().id)!;
+    const sanaRow = (await matchesFor(FOOD)).find((m) => m.volunteer_id === sana().id)!;
     expect(sanaRow).toMatchObject({ eligible: false, excluded_reason: "Declined this incident" });
-    expect(canSee(sana(), incident(FOOD))).toBe(false);
+    expect(await canSee(sana(), incident(FOOD))).toBe(false);
   });
 
   it("a volunteer cannot answer someone else's assignment", async () => {
@@ -73,7 +73,7 @@ describe("approve, accept, decline", () => {
 describe("no conflicting assignments", () => {
   it("a volunteer at capacity is excluded and cannot be assigned", async () => {
     db.volunteerProfiles.find((p) => p.user_id === sana().id)!.capacity = 1; // already holds incident 105
-    expect(matchesFor(FOOD).find((m) => m.volunteer_id === sana().id)!.excluded_reason).toMatch(/capacity/i);
+    expect((await matchesFor(FOOD)).find((m) => m.volunteer_id === sana().id)!.excluded_reason).toMatch(/capacity/i);
     await expect(assignVolunteer(coordinator(), FOOD, sana().id)).rejects.toThrow(/capacity/i);
   });
 
@@ -89,21 +89,21 @@ describe("reassign and resolve", () => {
     const second = await reassignVolunteer(coordinator(), first.id, karthik().id);
     expect(db.assignments.find((a) => a.id === first.id)!.status).toBe("reassigned");
     expect(second.status).toBe("approved");
-    expect(activeAssignment(FOOD)!.volunteer_id).toBe(karthik().id);
-    expect(canSee(sana(), incident(FOOD))).toBe(false);
-    expect(canSee(karthik(), incident(FOOD))).toBe(true);
+    expect((await activeAssignment(FOOD))!.volunteer_id).toBe(karthik().id);
+    expect(await canSee(sana(), incident(FOOD))).toBe(false);
+    expect(await canSee(karthik(), incident(FOOD))).toBe(true);
   });
 
   it("resolve completes the assignment and frees the volunteer", async () => {
     const a = await assignVolunteer(coordinator(), FOOD, sana().id);
     await respondToAssignment(sana(), a.id, true);
-    resolveIncident(coordinator(), FOOD);
+    await resolveIncident(coordinator(), FOOD);
     expect(incident(FOOD).status).toBe("resolved");
     expect(db.assignments.find((x) => x.id === a.id)!.status).toBe("completed");
-    expect(incidentEvents(coordinator(), FOOD).at(-1)!.action).toBe("resolved");
+    expect((await incidentEvents(coordinator(), FOOD)).at(-1)!.action).toBe("resolved");
   });
 
   it("cannot resolve an incident that is not in progress", async () => {
-    expect(() => resolveIncident(coordinator(), FOOD)).toThrow(/in-progress/);
+    await expect(resolveIncident(coordinator(), FOOD)).rejects.toThrow(/in-progress/);
   });
 });

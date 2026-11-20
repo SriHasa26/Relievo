@@ -19,7 +19,7 @@ describe("intake", () => {
     expect(inc.original_text).toBe(text);
     const analysis = db.analyses.find((a) => a.incident_id === inc.id)!;
     expect(analysis.extracted_data.requires_human_verification).toBe(true);
-    const actions = incidentEvents(citizen(), inc.id).map((e) => e.action);
+    const actions = (await incidentEvents(citizen(), inc.id)).map((e) => e.action);
     expect(actions).toEqual(["submitted", "ai_analyzed"]);
   });
 
@@ -33,10 +33,10 @@ describe("intake", () => {
     expect(near.possible_duplicate_of).toBe(uid(101));
   });
 
-  it("citizens only see their own incidents; hides AI analysis and assignees", () => {
-    expect(canSee(citizen(), db.incidents.find((i) => i.id === uid(101))!)).toBe(true);
-    expect(canSee(citizen(), db.incidents.find((i) => i.id === uid(102))!)).toBe(false); // Ravi's
-    const detail = incidentDetail(citizen(), uid(101));
+  it("citizens only see their own incidents; hides AI analysis and assignees", async () => {
+    expect(await canSee(citizen(), db.incidents.find((i) => i.id === uid(101))!)).toBe(true);
+    expect(await canSee(citizen(), db.incidents.find((i) => i.id === uid(102))!)).toBe(false); // Ravi's
+    const detail = await incidentDetail(citizen(), uid(101));
     expect(detail.analysis).toBeNull();
     expect(detail.assignments).toEqual([]);
   });
@@ -44,22 +44,22 @@ describe("intake", () => {
 
 describe("verify / reject", () => {
   it("verifies with edits and logs edited + verified", async () => {
-    const out = verifyIncident(coordinator(), uid(101), { decision: "verify", edits: { urgency: "critical", people_affected: 7 } });
+    const out = await verifyIncident(coordinator(), uid(101), { decision: "verify", edits: { urgency: "critical", people_affected: 7 } });
     expect(out.status).toBe("verified");
     expect(out.urgency).toBe("critical");
-    const actions = incidentEvents(coordinator(), uid(101)).map((e) => e.action);
+    const actions = (await incidentEvents(coordinator(), uid(101))).map((e) => e.action);
     expect(actions).toEqual(expect.arrayContaining(["edited", "verified"]));
   });
 
-  it("requires a reason to reject, then logs rejected", () => {
-    expect(() => verifyIncident(coordinator(), uid(102), { decision: "reject" })).toThrow(HttpError);
-    verifyIncident(coordinator(), uid(102), { decision: "reject", reason: "Duplicate of another request" });
+  it("requires a reason to reject, then logs rejected", async () => {
+    await expect(verifyIncident(coordinator(), uid(102), { decision: "reject" })).rejects.toThrow(HttpError);
+    await verifyIncident(coordinator(), uid(102), { decision: "reject", reason: "Duplicate of another request" });
     expect(db.incidents.find((i) => i.id === uid(102))!.status).toBe("rejected");
-    expect(incidentEvents(coordinator(), uid(102)).at(-1)!.action).toBe("rejected");
+    expect((await incidentEvents(coordinator(), uid(102))).at(-1)!.action).toBe("rejected");
   });
 
-  it("cannot verify an incident twice", () => {
-    verifyIncident(coordinator(), uid(101), { decision: "verify" });
-    expect(() => verifyIncident(coordinator(), uid(101), { decision: "verify" })).toThrow(/already/);
+  it("cannot verify an incident twice", async () => {
+    await verifyIncident(coordinator(), uid(101), { decision: "verify" });
+    await expect(verifyIncident(coordinator(), uid(101), { decision: "verify" })).rejects.toThrow(/already/);
   });
 });

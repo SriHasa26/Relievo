@@ -4,7 +4,7 @@ import { defineConfig } from "@playwright/test";
 // It starts `npm run dev` from the repo root if nothing is listening on :5173 yet.
 export default defineConfig({
   testDir: ".",
-  testMatch: "chat.spec.ts",
+  testMatch: /(chat|fresh-flow)\.spec\.ts/,
   workers: 1,
   timeout: 360_000,
   reporter: [["list"]],

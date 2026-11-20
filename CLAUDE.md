@@ -51,6 +51,10 @@ MOCK_DB=true
 ```
 Frontend `.env.example` (public values only, `VITE_` prefix): `VITE_NEXCONN_APP_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`, `VITE_NEXCONN_AREA_CODE`, `VITE_MOCK_CHAT`. Never commit real `.env` files.
 
+## Data and AI
+
+All data access goes through the `Repo` interface (`backend/src/store/repo.ts`): in-memory for `MOCK_DB=true`, Supabase (service-role key, backend only) otherwise. The backend verifies the Supabase JWT on every request and loads the role from the `users` table. AI order: OpenRouter, Gemini (only with a key), keyword fallback; always schema-validated, always human-verified.
+
 ## Mock flags rule
 
 `MOCK_CHAT`, `MOCK_AI`, `MOCK_DB` (backend) and `VITE_MOCK_CHAT` (frontend) are dev-only and default to `true`: in-memory chat stub, keyword "AI", in-memory data with demo logins. Each can be turned off independently. All must be `false` for the demo, the deployed build and the recorded video. `/api/health` and the UI must visibly show when a mock is on.

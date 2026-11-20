@@ -11,8 +11,8 @@ const WATER_STOCK = uid(51);
 beforeEach(() => resetDb(buildSeed()));
 
 describe("impact metrics (computed from incident_events)", () => {
-  it("matches the seeded timeline", () => {
-    const m = computeMetrics();
+  it("matches the seeded timeline", async () => {
+    const m = await computeMetrics();
     expect(m.total_incidents).toBe(8);
     expect(m.awaiting_review).toBe(2); // 101, 102
     expect(m.unassigned_incidents.map((u) => u.id).sort()).toEqual([uid(103), uid(104)]);
@@ -24,31 +24,31 @@ describe("impact metrics (computed from incident_events)", () => {
     expect(m.synthetic).toBe(true);
   });
 
-  it("changes when new events are logged", () => {
-    const before = computeMetrics().events_recorded;
-    allocateResource(coordinator(), WATER_STOCK, uid(103), 5);
-    expect(computeMetrics().events_recorded).toBe(before + 1);
-    expect(computeMetrics().resources_allocated_units).toBe(55);
+  it("changes when new events are logged", async () => {
+    const before = (await computeMetrics()).events_recorded;
+    await allocateResource(coordinator(), WATER_STOCK, uid(103), 5);
+    expect((await computeMetrics()).events_recorded).toBe(before + 1);
+    expect((await computeMetrics()).resources_allocated_units).toBe(55);
   });
 });
 
 describe("resource allocation", () => {
-  it("reduces stock, records the allocation and logs a timeline event", () => {
+  it("reduces stock, records the allocation and logs a timeline event", async () => {
     const stock = db.resources.find((r) => r.id === WATER_STOCK)!.quantity;
-    allocateResource(coordinator(), WATER_STOCK, uid(103), 10);
+    await allocateResource(coordinator(), WATER_STOCK, uid(103), 10);
     expect(db.resources.find((r) => r.id === WATER_STOCK)!.quantity).toBe(stock - 10);
-    expect(incidentEvents(coordinator(), uid(103)).at(-1)!.action).toBe("resource_allocated");
+    expect((await incidentEvents(coordinator(), uid(103))).at(-1)!.action).toBe("resource_allocated");
   });
 
-  it("refuses more than the available quantity, bad quantities and closed incidents", () => {
-    expect(() => allocateResource(coordinator(), WATER_STOCK, uid(103), 9999)).toThrow(/available/);
-    expect(() => allocateResource(coordinator(), WATER_STOCK, uid(103), 0)).toThrow(/positive/);
-    expect(() => allocateResource(coordinator(), WATER_STOCK, uid(107), 1)).toThrow(/open/); // resolved
-    expect(() => allocateResource(coordinator(), WATER_STOCK, uid(101), 1)).toThrow(/verified/); // not verified yet
+  it("refuses more than the available quantity, bad quantities and closed incidents", async () => {
+    await expect(allocateResource(coordinator(), WATER_STOCK, uid(103), 9999)).rejects.toThrow(/available/);
+    await expect(allocateResource(coordinator(), WATER_STOCK, uid(103), 0)).rejects.toThrow(/positive/);
+    await expect(allocateResource(coordinator(), WATER_STOCK, uid(107), 1)).rejects.toThrow(/open/); // resolved
+    await expect(allocateResource(coordinator(), WATER_STOCK, uid(101), 1)).rejects.toThrow(/verified/); // not verified yet
   });
 
-  it("flags stock that fits the incident and shows its distance", () => {
-    const list = listResources(uid(107)); // water incident
+  it("flags stock that fits the incident and shows its distance", async () => {
+    const list = await listResources(uid(107)); // water incident
     expect(list.find((r) => r.id === WATER_STOCK)!.relevant).toBe(true);
     expect(list.find((r) => r.resource_type === "food")!.relevant).toBe(false);
     expect(list[0]!.distance_km).not.toBeNull();

@@ -62,12 +62,12 @@ describe("token and contacts", () => {
     expect(t.userId).toBe(sana().id);
   });
 
-  it("citizens get no DM contacts; volunteers only see coordinators they work with; coordinators see verified volunteers", () => {
-    expect(chatContacts(user(1))).toEqual([]);
-    expect(chatContacts(sana()).map((c) => c.id).sort()).toEqual([uid(21), uid(22)]); // Sana worked with both seeded coordinators
-    const ids = chatContacts(coordinator()).map((c) => c.id);
+  it("citizens get no DM contacts; volunteers only see coordinators they work with; coordinators see verified volunteers", async () => {
+    expect(await chatContacts(user(1))).toEqual([]);
+    expect((await chatContacts(sana())).map((c) => c.id).sort()).toEqual([uid(21), uid(22)]); // Sana worked with both seeded coordinators
+    const ids = (await chatContacts(coordinator())).map((c) => c.id);
     expect(ids).toContain(sana().id);
     expect(ids).not.toContain(uid(13)); // unverified Divya
-    expect(chatContacts(coordinator()).every((c) => c.role === "volunteer")).toBe(true);
+    expect((await chatContacts(coordinator())).every((c) => c.role === "volunteer")).toBe(true);
   });
 });

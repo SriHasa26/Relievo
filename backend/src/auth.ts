@@ -1,34 +1,62 @@
-// Mock authentication (MOCK_DB): seeded accounts log in with email + password and get an opaque token.
-// TODO(supabase): in real mode, verify the Supabase JWT here instead. Routes only use req.user.
+// Who is calling? Every API request except /health and /auth/* goes through requireAuth.
+//   MOCK_DB=true : seeded accounts sign in with email + password and get an opaque session token (in memory).
+//   MOCK_DB=false: the frontend signs in with Supabase Auth; the backend VERIFIES that JWT on every request with
+//                  Supabase, then loads the role from the users table. The role never comes from the token or the client.
 import { randomUUID } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
-import { db } from "./store/store";
+import { config } from "./config";
+import { getRepo } from "./store/repo";
+import { createServiceClient } from "./store/supabaseRepo";
 import type { Role, User } from "./types";
 
+export type PublicUser = Omit<User, "password">;
+export const toPublic = ({ password: _p, ...rest }: User): PublicUser => rest;
+
+// ---- mock sessions ----
 const sessions = new Map<string, string>(); // token -> user id
 
-export function login(email: string, password: string): { token: string; user: PublicUser } | null {
-  const user = db.users.find((u) => u.email === email && u.password === password);
-  if (!user) return null;
+export async function login(email: string, password: string): Promise<{ token: string; user: PublicUser } | null> {
+  if (!config.mockDb) return null;
+  const user = await (await getRepo()).userByEmail(email);
+  if (!user || user.password !== password) return null;
   const token = randomUUID();
   sessions.set(token, user.id);
   return { token, user: toPublic(user) };
 }
 
-export type PublicUser = Omit<User, "password">;
-export const toPublic = ({ password: _p, ...rest }: User): PublicUser => rest;
+// ---- Supabase JWT verification (cached for a minute so each request does not call Supabase Auth) ----
+let authClient: ReturnType<typeof createServiceClient> | null = null;
+const verified = new Map<string, { userId: string; until: number }>();
+
+async function userIdFromJwt(token: string): Promise<string | null> {
+  const hit = verified.get(token);
+  if (hit && hit.until > Date.now()) return hit.userId;
+  authClient ??= createServiceClient();
+  const { data, error } = await authClient.auth.getUser(token); // Supabase checks signature and expiry
+  if (error || !data.user) return null;
+  verified.set(token, { userId: data.user.id, until: Date.now() + 60_000 });
+  return data.user.id;
+}
+
+async function userFromToken(token: string): Promise<User | null> {
+  const userId = config.mockDb ? sessions.get(token) ?? null : await userIdFromJwt(token);
+  return userId ? (await (await getRepo()).userById(userId)) : null;
+}
 
 export interface AuthedRequest extends Request {
   user?: User;
 }
 
-export function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
-  const token = req.headers.authorization?.replace(/^Bearer /, "");
-  const userId = token ? sessions.get(token) : undefined;
-  const user = userId ? db.users.find((u) => u.id === userId) : undefined;
-  if (!user) return void res.status(401).json({ error: "Not signed in" });
-  req.user = user;
-  next();
+export async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
+  try {
+    const token = req.headers.authorization?.replace(/^Bearer /, "");
+    const user = token ? await userFromToken(token) : null;
+    if (!user) return void res.status(401).json({ error: "Not signed in" });
+    req.user = user;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }
 
 export const requireRole = (...roles: Role[]) => (req: AuthedRequest, res: Response, next: NextFunction) => {

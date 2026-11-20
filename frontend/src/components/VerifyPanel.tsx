@@ -9,6 +9,8 @@ import type { Category, IncidentDetailData, Urgency } from "@/lib/types";
 const CATEGORIES: Category[] = ["medical", "food", "water", "shelter", "rescue", "other"];
 const URGENCIES: Urgency[] = ["low", "medium", "high", "critical"];
 
+const AI_LABEL = { openrouter: "AI via OpenRouter", gemini: "AI via Gemini", fallback: "Fallback", mock: "Mock AI" } as const;
+
 export function ReportVsAi({ data }: { data: IncidentDetailData }) {
   const { incident, analysis } = data;
   return (
@@ -26,6 +28,7 @@ export function ReportVsAi({ data }: { data: IncidentDetailData }) {
         <CardHeader>
           <CardTitle>
             AI suggestion <Badge tone="amber">needs human verification</Badge>
+            {analysis && <Badge tone="blue">{AI_LABEL[analysis.source]}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
@@ -40,7 +43,7 @@ export function ReportVsAi({ data }: { data: IncidentDetailData }) {
                 <p className="text-amber-800"><b>Missing:</b> {analysis.extracted_data.missing_info.join("; ")}</p>
               )}
               <p className="pt-2 text-xs text-slate-500">
-                Source: {analysis.source} ({analysis.model_version}) · confidence {Math.round(analysis.confidence * 100)}%.
+                Model: {analysis.model_version} · confidence {Math.round(analysis.confidence * 100)}%.
                 AI is decision support only.
               </p>
             </>

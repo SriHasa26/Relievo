@@ -83,6 +83,17 @@ export async function issueUserToken(input: { userId: string; name: string }): P
   return { userId: input.userId, token: await registerUser(input.userId, input.name) };
 }
 
+/** Register many users at once (start-up). A failure for one user does not stop the others. */
+export async function registerUsers(users: Array<{ userId: string; name: string }>): Promise<{ registered: number; failed: number }> {
+  if (useMock()) return { registered: users.length, failed: 0 };
+  let registered = 0;
+  let failed = 0;
+  for (const u of users) {
+    try { await registerUser(u.userId, u.name); registered++; } catch { failed++; }
+  }
+  return { registered, failed };
+}
+
 /** Create a group chat room. Idempotent: if the group already exists, make sure the members are in it. */
 export async function createGroup(input: {
   groupId: string; name: string; ownerId: string; memberIds: string[];

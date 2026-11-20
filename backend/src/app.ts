@@ -2,7 +2,8 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from "express";
 import { config } from "./config";
 import { login, requireAuth, requireRole, toPublic, type AuthedRequest } from "./auth";
-import { db } from "./store/store";
+import { getRepo } from "./store/repo";
+import { DEMO_PASSWORD } from "./store/seedData";
 import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
 } from "./services/dispatch";
@@ -29,20 +30,24 @@ export function createApp() {
   app.get("/api/health", (_req, res) => res.json({
     ok: true, mockChat: config.mockChat, mockAi: config.mockAi, mockDb: config.mockDb,
     mockMode: config.mockChat || config.mockAi || config.mockDb,
+    ai: { openrouter: Boolean(config.openrouterApiKey), gemini: Boolean(config.geminiApiKey) },
   }));
 
   // ---- auth (mock accounts) ----
-  app.post("/api/auth/login", (req, res) => {
-    const result = login(String(req.body?.email ?? ""), String(req.body?.password ?? ""));
+  // Only for MOCK_DB. With Supabase the browser signs in with Supabase Auth directly.
+  app.post("/api/auth/login", wrap(async (req, res) => {
+    const result = await login(String(req.body?.email ?? ""), String(req.body?.password ?? ""));
     if (!result) return void res.status(401).json({ error: "Wrong email or password" });
     res.json(result);
-  });
+  }));
 
-  // Role switcher on the login page: list seeded demo accounts (MOCK_DB only).
-  app.get("/api/auth/demo-users", (_req, res) => {
-    if (!config.mockDb) return void res.status(404).json({ error: "Not available" });
-    res.json(db.users.map((u) => ({ ...toPublic(u), password: u.password })));
-  });
+  // Role switcher on the login page: the SYNTHETIC demo accounts and their shared demo password.
+  // Turn off with DEMO_LOGIN=false for anything public.
+  app.get("/api/auth/demo-users", wrap(async (_req, res) => {
+    if (!config.demoLogin) return void res.status(404).json({ error: "Not available" });
+    const users = (await (await getRepo()).users()).filter((u) => u.is_synthetic);
+    res.json(users.map((u) => ({ ...toPublic(u), password: DEMO_PASSWORD })));
+  }));
 
   app.get("/api/me", requireAuth, (req: AuthedRequest, res) => res.json(toPublic(req.user!)));
 
@@ -57,18 +62,18 @@ export function createApp() {
     res.status(201).json(incident);
   }));
 
-  app.get("/api/incidents", requireAuth, wrap((req, res) => res.json(listIncidents(req.user!))));
-  app.get("/api/incidents/:id", requireAuth, wrap((req, res) => res.json(incidentDetail(req.user!, param(req, "id")))));
-  app.get("/api/incidents/:id/events", requireAuth, wrap((req, res) => res.json(incidentEvents(req.user!, param(req, "id")))));
+  app.get("/api/incidents", requireAuth, wrap(async (req, res) => res.json(await listIncidents(req.user!))));
+  app.get("/api/incidents/:id", requireAuth, wrap(async (req, res) => res.json(await incidentDetail(req.user!, param(req, "id")))));
+  app.get("/api/incidents/:id/events", requireAuth, wrap(async (req, res) => res.json(await incidentEvents(req.user!, param(req, "id")))));
 
-  app.post("/api/incidents/:id/verify", requireAuth, requireRole("coordinator"), wrap((req, res) => {
+  app.post("/api/incidents/:id/verify", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
     const b = req.body ?? {};
     if (b.decision !== "verify" && b.decision !== "reject") throw new HttpError(400, "decision must be verify or reject");
-    res.json(verifyIncident(req.user!, param(req, "id"), { decision: b.decision, reason: b.reason, edits: b.edits }));
+    res.json(await verifyIncident(req.user!, param(req, "id"), { decision: b.decision, reason: b.reason, edits: b.edits }));
   }));
 
   // ---- dispatch (ResponderMatch) ----
-  app.get("/api/incidents/:id/matches", requireAuth, requireRole("coordinator"), wrap((req, res) => res.json(matchesFor(param(req, "id")))));
+  app.get("/api/incidents/:id/matches", requireAuth, requireRole("coordinator"), wrap(async (req, res) => res.json(await matchesFor(param(req, "id")))));
 
   app.post("/api/incidents/:id/assign", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
     res.status(201).json(await assignVolunteer(req.user!, param(req, "id"), String(req.body?.volunteerId ?? "")));
@@ -82,31 +87,31 @@ export function createApp() {
     res.json(await respondToAssignment(req.user!, param(req, "id"), req.body?.accept === true));
   }));
 
-  app.post("/api/incidents/:id/status", requireAuth, requireRole("coordinator"), wrap((req, res) => {
+  app.post("/api/incidents/:id/status", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
     if (req.body?.status !== "resolved") throw new HttpError(400, "Only status=resolved can be set here");
-    res.json(resolveIncident(req.user!, param(req, "id")));
+    res.json(await resolveIncident(req.user!, param(req, "id")));
   }));
 
-  app.get("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap((req, res) => res.json(volunteerProfile(req.user!.id))));
-  app.patch("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap((req, res) => {
-    res.json(setAvailability(req.user!, req.body?.availability));
+  app.get("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap(async (req, res) => res.json(await volunteerProfile(req.user!.id))));
+  app.patch("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap(async (req, res) => {
+    res.json(await setAvailability(req.user!, req.body?.availability));
   }));
 
   // ---- rooms and chat (Nexconn via the adapter) ----
   // Token is always issued for the signed-in user only.
   app.post("/api/chat/token", requireAuth, wrap(async (req, res) => res.json(await chatToken(req.user!))));
   app.get("/api/incidents/:id/room", requireAuth, wrap(async (req, res) => res.json(await roomAccess(req.user!, param(req, "id")))));
-  app.get("/api/chat/contacts", requireAuth, wrap((req, res) => res.json(chatContacts(req.user!))));
+  app.get("/api/chat/contacts", requireAuth, wrap(async (req, res) => res.json(await chatContacts(req.user!))));
 
   // ---- resources and impact ----
-  app.get("/api/resources", requireAuth, requireRole("coordinator", "ngo"), wrap((req, res) => {
-    res.json(listResources(typeof req.query.incident_id === "string" ? req.query.incident_id : undefined));
+  app.get("/api/resources", requireAuth, requireRole("coordinator", "ngo"), wrap(async (req, res) => {
+    res.json(await listResources(typeof req.query.incident_id === "string" ? req.query.incident_id : undefined));
   }));
-  app.post("/api/resources/:id/allocate", requireAuth, requireRole("coordinator"), wrap((req, res) => {
+  app.post("/api/resources/:id/allocate", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
     const b = req.body ?? {};
-    res.status(201).json(allocateResource(req.user!, param(req, "id"), String(b.incident_id ?? ""), Number(b.quantity)));
+    res.status(201).json(await allocateResource(req.user!, param(req, "id"), String(b.incident_id ?? ""), Number(b.quantity)));
   }));
-  app.get("/api/metrics", requireAuth, requireRole("coordinator"), wrap((_req, res) => res.json(computeMetrics())));
+  app.get("/api/metrics", requireAuth, requireRole("coordinator"), wrap(async (_req, res) => res.json(await computeMetrics())));
 
   // ---- error handler ----
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

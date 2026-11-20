@@ -11,7 +11,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // demo accounts only (mock auth); real auth is Supabase Auth
+  password?: string; // MOCK_DB demo accounts only; with Supabase the password lives in Supabase Auth
   role: Role;
   phone: string;
   verified: boolean;
@@ -71,7 +71,7 @@ export interface AiAnalysis {
   extracted_data: Extraction;
   confidence: number;
   model_version: string;
-  source: "gemini" | "fallback" | "mock";
+  source: "openrouter" | "gemini" | "fallback" | "mock"; // which provider answered
 }
 
 export interface ScoreBreakdown {
