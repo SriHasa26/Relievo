@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, getToken, setToken } from "./api";
+import { resetChat } from "./chat";
 import type { User } from "./types";
 
 interface AuthState {
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   }, []);
 
-  const signOut = useCallback(() => { setToken(null); setUser(null); }, []);
+  const signOut = useCallback(() => { void resetChat(); setToken(null); setUser(null); }, []);
 
   return <AuthContext.Provider value={{ user, loading, signIn, signOut }}>{children}</AuthContext.Provider>;
 }

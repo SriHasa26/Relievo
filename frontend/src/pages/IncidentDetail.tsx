@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { StatusBadge, SyntheticBadge, UrgencyBadge } from "@/components/badges";
+import { DirectMessages } from "@/components/DirectMessages";
 import { DispatchPanel } from "@/components/DispatchPanel";
+import { RoomChat } from "@/components/RoomChat";
 import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +43,10 @@ export default function IncidentDetail() {
   if (!data || !user) return <p>Loading…</p>;
   const { incident } = data;
   const isCoordinator = user.role === "coordinator";
+  const activeAssignment = data.assignments.find((a) => a.status === "approved" || a.status === "accepted");
+  // Chat is for the coordinator and the volunteer with an active assignment (the backend enforces this too).
+  const showChat = data.has_room && (isCoordinator || (user.role === "volunteer" && Boolean(activeAssignment)));
+  const dmPartner = isCoordinator ? activeAssignment?.volunteer_id : activeAssignment?.assigned_by;
 
   return (
     <div className="space-y-4">
@@ -81,6 +87,13 @@ export default function IncidentDetail() {
 
       {user.role === "volunteer" && data.assignments.length > 0 && (
         <p className="text-sm text-slate-600">Your assignment: {data.assignments.at(-1)!.status}</p>
+      )}
+
+      {showChat && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RoomChat incidentId={incident.id} />
+          <DirectMessages preferId={dmPartner} />
+        </div>
       )}
 
       <Timeline events={events} />

@@ -6,6 +6,7 @@ import { db } from "./store/store";
 import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
 } from "./services/dispatch";
+import { chatContacts, chatToken, roomAccess } from "./services/rooms";
 import {
   HttpError, incidentDetail, incidentEvents, listIncidents, submitIncident, verifyIncident,
 } from "./services/incidents";
@@ -85,6 +86,12 @@ export function createApp() {
   app.patch("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap((req, res) => {
     res.json(setAvailability(req.user!, req.body?.availability));
   }));
+
+  // ---- rooms and chat (Nexconn via the adapter) ----
+  // Token is always issued for the signed-in user only.
+  app.post("/api/chat/token", requireAuth, wrap(async (req, res) => res.json(await chatToken(req.user!))));
+  app.get("/api/incidents/:id/room", requireAuth, wrap(async (req, res) => res.json(await roomAccess(req.user!, param(req, "id")))));
+  app.get("/api/chat/contacts", requireAuth, wrap((req, res) => res.json(chatContacts(req.user!))));
 
   // ---- error handler ----
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 
 const NAV: Record<Role, Array<[string, string]>> = {
   citizen: [["/citizen", "My requests"], ["/citizen/new", "New request"]],
-  volunteer: [["/volunteer", "My assignments"]],
-  coordinator: [["/coordinator", "Command centre"], ["/impact", "Impact"], ["/resources", "Resources"]],
+  volunteer: [["/volunteer", "My assignments"], ["/messages", "Messages"]],
+  coordinator: [["/coordinator", "Command centre"], ["/messages", "Messages"], ["/impact", "Impact"], ["/resources", "Resources"]],
   ngo: [["/resources", "Resources"]],
 };
 

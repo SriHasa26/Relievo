@@ -2,8 +2,21 @@
 // The AI never assigns anyone. Only a coordinator's approve/reassign call creates an assignment.
 import { db, logEvent, newId } from "../store/store";
 import { HttpError, activeAssignment, getIncident } from "./incidents";
+import { ensureRoomFor, removeVolunteerFromRoom } from "./rooms";
 import { rankVolunteers, type Candidate, type MatchResult } from "./matching";
 import type { Assignment, Availability, Incident, User } from "../types";
+
+/**
+ * Chat is secondary to the assignment: if Nexconn fails, the assignment (Supabase) still stands.
+ * The failure is logged on the timeline so a coordinator can see it and retry; see risk 4 in docs.
+ */
+async function syncChat(incidentId: string, step: () => Promise<unknown>) {
+  try {
+    await step();
+  } catch (err) {
+    logEvent(incidentId, null, "chat_sync_failed", { error: (err as Error).message });
+  }
+}
 
 const activeCountFor = (volunteerId: string) =>
   db.assignments.filter((a) => a.volunteer_id === volunteerId && (a.status === "approved" || a.status === "accepted")).length;
@@ -50,17 +63,18 @@ function createAssignment(coordinator: User, incident: Incident, match: MatchRes
 }
 
 /** Coordinator approves a volunteer for a verified incident. */
-export function assignVolunteer(coordinator: User, incidentId: string, volunteerId: string): Assignment {
+export async function assignVolunteer(coordinator: User, incidentId: string, volunteerId: string): Promise<Assignment> {
   const incident = getIncident(incidentId);
   if (incident.status !== "verified") throw new HttpError(409, `Incident is ${incident.status}; it must be verified (and unassigned) to assign`);
   const match = pickEligible(incident, volunteerId);
   const assignment = createAssignment(coordinator, incident, match);
   logEvent(incident.id, coordinator.id, "assigned", { volunteer_id: volunteerId, score: match.breakdown?.total });
+  await syncChat(incident.id, () => ensureRoomFor(incident, coordinator.id, volunteerId));
   return assignment;
 }
 
 /** Coordinator replaces the current volunteer with another eligible one. */
-export function reassignVolunteer(coordinator: User, assignmentId: string, newVolunteerId: string): Assignment {
+export async function reassignVolunteer(coordinator: User, assignmentId: string, newVolunteerId: string): Promise<Assignment> {
   const old = db.assignments.find((a) => a.id === assignmentId);
   if (!old || (old.status !== "approved" && old.status !== "accepted")) throw new HttpError(404, "No active assignment to reassign");
   if (old.volunteer_id === newVolunteerId) throw new HttpError(400, "Choose a different volunteer");
@@ -72,11 +86,15 @@ export function reassignVolunteer(coordinator: User, assignmentId: string, newVo
   logEvent(incident.id, coordinator.id, "reassigned", {
     from_volunteer_id: old.volunteer_id, volunteer_id: newVolunteerId, score: match.breakdown?.total,
   });
+  await syncChat(incident.id, async () => {
+    await removeVolunteerFromRoom(incident.id, old.volunteer_id);
+    await ensureRoomFor(incident, coordinator.id, newVolunteerId);
+  });
   return assignment;
 }
 
 /** Volunteer answers an approved assignment. A decline puts the incident back in the matching list. */
-export function respondToAssignment(volunteer: User, assignmentId: string, accept: boolean): Assignment {
+export async function respondToAssignment(volunteer: User, assignmentId: string, accept: boolean): Promise<Assignment> {
   const assignment = db.assignments.find((a) => a.id === assignmentId);
   if (!assignment || assignment.volunteer_id !== volunteer.id) throw new HttpError(404, "Assignment not found");
   if (assignment.status !== "approved") throw new HttpError(409, `Assignment is already ${assignment.status}`);
@@ -91,6 +109,7 @@ export function respondToAssignment(volunteer: User, assignmentId: string, accep
     assignment.status = "declined";
     incident.status = "verified"; // back to the coordinator's matching list
     logEvent(incident.id, volunteer.id, "declined");
+    await syncChat(incident.id, () => removeVolunteerFromRoom(incident.id, volunteer.id));
   }
   return assignment;
 }
