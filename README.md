@@ -76,3 +76,9 @@ Manual check with two browsers (use two different browser profiles, or one norma
 5. Refresh both browsers: the history is still there.
 6. Browser C (or B after a decline/reassign): log in as Karthik, open the same incident URL: the room is refused (403).
 7. Stop the backend, reload: a red "Chat problem" message with a Retry button appears; restart and press Retry.
+
+## Automated chat check (real Nexconn)
+`npm run e2e:chat` drives two browser contexts (Coordinator Priya and volunteer Karthik on seeded incident 106) plus a
+third for the refusal checks. Needs `MOCK_CHAT=false` / `VITE_MOCK_CHAT=false` in your `.env` files. First time only:
+`cd e2e && npm install && npx playwright install chromium`. Screenshots go to `e2e/screenshots/` (git-ignored).
+Stop any dev server that is already running with mock flags first: the test refuses to run against `MOCK_CHAT=true`.
