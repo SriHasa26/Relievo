@@ -3,7 +3,7 @@
 AI-assisted disaster-response coordination. Citizens report, a coordinator verifies and approves explainable
 volunteer matches, and responders talk in incident rooms built on the Nexconn Chat SDK.
 Hackathon: Nexconn Build Challenge 2026 (Humanitarian & Social Good).
-Plan: [docs/UNDERSTANDING.md](docs/UNDERSTANDING.md) · Rules: [CLAUDE.md](CLAUDE.md)
+Plan: [docs/UNDERSTANDING.md](docs/UNDERSTANDING.md) · Rules: [CLAUDE.md](CLAUDE.md) · Deploy: [docs/DEPLOY.md](docs/DEPLOY.md)
 
 > AI is decision support. A human coordinator verifies every incident and approves every assignment.
 > All demo data is synthetic and labelled so.

@@ -97,6 +97,8 @@ export async function registerUsers(users: Array<{ userId: string; name: string 
 /** Create a group chat room. Idempotent: if the group already exists, make sure the members are in it. */
 export async function createGroup(input: {
   groupId: string; name: string; ownerId: string; memberIds: string[];
+  /** Set when the group probably exists already (start-up restore): try joining first, create only if that fails. */
+  mayExist?: boolean;
 }): Promise<{ groupId: string }> {
   if (useMock()) {
     if (!mockGroups.has(input.groupId)) {
@@ -109,6 +111,9 @@ export async function createGroup(input: {
   }
   const members = input.memberIds.filter((m) => m !== input.ownerId);
   await ensureRegistered([input.ownerId, ...members]);
+  if (input.mayExist) {
+    try { await addMembers(input.groupId, [input.ownerId, ...members]); return { groupId: input.groupId }; } catch { /* does not exist yet: create it */ }
+  }
   try {
     await callNexconn("/v4/group-channel/create", {
       channelId: nexId(input.groupId), name: input.name.slice(0, 64), owner: nexId(input.ownerId), userIds: members.map(nexId),

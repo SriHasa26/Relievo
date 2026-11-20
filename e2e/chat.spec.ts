@@ -26,7 +26,10 @@ async function send(page: Page, text: string) {
 }
 const apiStatus = (page: Page, path: string) =>
   page.evaluate(async (p) => {
-    const res = await fetch(p, { headers: { Authorization: `Bearer ${sessionStorage.getItem("rr-token")}` } });
+    // Mock sessions keep the token under "rr-token"; Supabase keeps it in its own "sb-...-auth-token" entry.
+    const key = Object.keys(sessionStorage).find((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
+    const token = key ? (JSON.parse(sessionStorage.getItem(key)!) as { access_token: string }).access_token : sessionStorage.getItem("rr-token");
+    const res = await fetch(p, { headers: { Authorization: `Bearer ${token}` } });
     return res.status;
   }, path);
 

@@ -101,7 +101,7 @@ export async function restoreRooms() {
     if (!incident || !active) continue;
     await nexconn.createGroup({
       groupId: channel.nexconn_channel_id, name: `Incident: ${incident.category}`,
-      ownerId: active.assigned_by, memberIds: [active.volunteer_id],
+      ownerId: active.assigned_by, memberIds: [active.volunteer_id], mayExist: true,
     });
   }
 }

@@ -25,7 +25,8 @@ export interface ChatMessage {
 }
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
-const MOCK = import.meta.env.VITE_MOCK_CHAT !== "false";
+// Development: mock unless VITE_MOCK_CHAT=false. Production build: real chat unless VITE_MOCK_CHAT=true is set on purpose.
+const MOCK = import.meta.env.PROD ? import.meta.env.VITE_MOCK_CHAT === "true" : import.meta.env.VITE_MOCK_CHAT !== "false";
 export const isMockChat = MOCK;
 
 // ---------------- mock internals ----------------

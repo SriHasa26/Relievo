@@ -3,6 +3,7 @@
 //   MOCK_DB=false: the frontend signs in with Supabase Auth; the backend VERIFIES that JWT on every request with
 //                  Supabase, then loads the role from the users table. The role never comes from the token or the client.
 import { randomUUID } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 import type { NextFunction, Request, Response } from "express";
 import { config } from "./config";
 import { getRepo } from "./store/repo";
@@ -16,12 +17,22 @@ export const toPublic = ({ password: _p, ...rest }: User): PublicUser => rest;
 const sessions = new Map<string, string>(); // token -> user id
 
 export async function login(email: string, password: string): Promise<{ token: string; user: PublicUser } | null> {
-  if (!config.mockDb) return null;
-  const user = await (await getRepo()).userByEmail(email);
-  if (!user || user.password !== password) return null;
-  const token = randomUUID();
-  sessions.set(token, user.id);
-  return { token, user: toPublic(user) };
+  const repo = await getRepo();
+  if (config.mockDb) {
+    const user = await repo.userByEmail(email);
+    if (!user || user.password !== password) return null;
+    const token = randomUUID();
+    sessions.set(token, user.id);
+    return { token, user: toPublic(user) };
+  }
+  // Supabase: the browser normally signs in itself. This server-side sign-in exists for scripts (the smoke test) and is
+  // available only while DEMO_LOGIN=true. It returns the Supabase access token, which requireAuth verifies like any other.
+  if (!config.demoLogin || !config.supabaseUrl || !config.supabaseAnonKey) return null;
+  const anon = createClient(config.supabaseUrl, config.supabaseAnonKey, { auth: { persistSession: false } });
+  const { data, error } = await anon.auth.signInWithPassword({ email, password });
+  if (error || !data.session) return null;
+  const user = await repo.userById(data.user.id);
+  return user ? { token: data.session.access_token, user: toPublic(user) } : null;
 }
 
 // ---- Supabase JWT verification (cached for a minute so each request does not call Supabase Auth) ----

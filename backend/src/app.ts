@@ -24,17 +24,25 @@ const param = (req: Request, name: string) => String(req.params[name]);
 
 export function createApp() {
   const app = express();
-  app.use(cors());
+  // CORS: only the deployed frontend (FRONTEND_URL) and, outside production, localhost. Requests without an
+  // Origin header (curl, server-to-server, health checks) are not browser requests and are let through.
+  const allowed = (origin: string) =>
+    config.frontendUrls.includes(origin.replace(/\/+$/, ""))
+    || (!config.isProduction && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
+  app.use(cors({ origin: (origin, cb) => cb(null, !origin || allowed(origin)) }));
   app.use(express.json());
 
-  app.get("/api/health", (_req, res) => res.json({
-    ok: true, mockChat: config.mockChat, mockAi: config.mockAi, mockDb: config.mockDb,
+  // Liveness + which mock flags are on. No secrets. /health is for Render's health check, /api/health for the frontend.
+  const health = (_req: Request, res: Response) => res.json({
+    ok: true, status: "ok", mockChat: config.mockChat, mockAi: config.mockAi, mockDb: config.mockDb,
     mockMode: config.mockChat || config.mockAi || config.mockDb,
     ai: { openrouter: Boolean(config.openrouterApiKey), gemini: Boolean(config.geminiApiKey) },
-  }));
+  });
+  app.get("/health", health);
+  app.get("/api/health", health);
 
   // ---- auth (mock accounts) ----
-  // Only for MOCK_DB. With Supabase the browser signs in with Supabase Auth directly.
+  // MOCK_DB: demo sessions. With Supabase the browser signs in with Supabase Auth itself; this is only a scripting helper (DEMO_LOGIN).
   app.post("/api/auth/login", wrap(async (req, res) => {
     const result = await login(String(req.body?.email ?? ""), String(req.body?.password ?? ""));
     if (!result) return void res.status(401).json({ error: "Wrong email or password" });

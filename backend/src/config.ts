@@ -13,8 +13,13 @@ export function apiUrlFrom(value: string | undefined): string | undefined {
   return m ? `https://${m[1]}.supabase.co` : value.replace(/\/+$/, "");
 }
 
+const origin = (u: string) => u.trim().replace(/\/+$/, "");
+
 export const config = {
-  port: Number(process.env.PORT ?? 4000),
+  port: Number(process.env.PORT ?? 4000), // Render sets PORT
+  isProduction: process.env.NODE_ENV === "production",
+  // Browser origins allowed to call the API: the deployed frontend(s), comma separated. Localhost is added outside production.
+  frontendUrls: (process.env.FRONTEND_URL ?? "").split(",").map(origin).filter((u) => u && !u.startsWith("paste")),
   // Each flag defaults to true (safe for dev with no keys). ALL must be false for the demo.
   mockChat: (process.env.MOCK_CHAT ?? "true") === "true", // in-memory chat stub instead of Nexconn
   mockAi: (process.env.MOCK_AI ?? "true") === "true", // keyword "AI" instead of Gemini
