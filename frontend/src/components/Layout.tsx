@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { HOME, type Role } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { isMockChat } from "@/integrations/nexconnClient";
 import { useLargeText } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ export function Layout() {
     <div className="min-h-screen">
       <div className="bg-amber-100 px-4 py-1 text-center text-xs text-amber-900">
         SYNTHETIC DEMO DATA. Not real emergencies.
-        {import.meta.env.VITE_MOCK_MODE !== "false" && " MOCK MODE: chat and AI are simulated."}
+        {isMockChat && " MOCK CHAT: messages are simulated, not Nexconn."}
       </div>
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">

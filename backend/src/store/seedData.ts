@@ -1,5 +1,5 @@
 // All demo data. Everything here is SYNTHETIC (is_synthetic = true) and shown as such in the UI.
-// Used by the in-memory store (MOCK_MODE) and by scripts/seed-supabase.ts.
+// Used by the in-memory store (MOCK_DB) and by scripts/seed-supabase.ts.
 import { keywordExtract } from "../services/extraction";
 import type {
   Assignment, AiAnalysis, Incident, IncidentChannel, IncidentEvent, Organisation,

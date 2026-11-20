@@ -22,7 +22,7 @@ export function validateExtraction(raw: unknown): Extraction {
   return { ...parsed, requires_human_verification: true };
 }
 
-// ---------- keyword fallback (also used as the MOCK_MODE "AI") ----------
+// ---------- keyword fallback (also used as the MOCK_AI "AI") ----------
 
 const CATEGORY_KEYWORDS: Record<Exclude<Category, "other">, string[]> = {
   rescue: ["trapped", "stuck", "rescue", "drown", "stranded", "boat", "cannot get out", "can't get out"],
@@ -114,7 +114,7 @@ async function geminiExtract(_text: string): Promise<unknown> {
 export async function extractIncident(
   text: string,
 ): Promise<Pick<AiAnalysis, "extracted_data" | "confidence" | "source" | "model_version">> {
-  if (!config.mockMode && config.geminiApiKey) {
+  if (!config.mockAi && config.geminiApiKey) {
     try {
       const extraction = validateExtraction(await geminiExtract(text));
       return { extracted_data: extraction, confidence: 0.8, source: "gemini", model_version: "gemini" };
@@ -126,7 +126,7 @@ export async function extractIncident(
   return {
     extracted_data: extraction,
     confidence,
-    source: config.mockMode ? "mock" : "fallback",
+    source: config.mockAi ? "mock" : "fallback",
     model_version: "keyword-v1",
   };
 }

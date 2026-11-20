@@ -1,10 +1,16 @@
 // The ONLY frontend file that talks to Nexconn. Nothing else may import the Nexconn SDK.
-// Every function has a MOCK implementation and a placeholder for the real call.
-// Do not guess SDK method names: paste the real call at each TODO(nexconn) marker.
+// VITE_MOCK_CHAT=true  -> MOCK implementation below (no network).
+// VITE_MOCK_CHAT=false -> the real @nexconn/chat Web SDK (names verified against its installed type definitions).
 //
 // MOCK: messages live in localStorage and are announced through a BroadcastChannel, so two browser
 // tabs on the same origin (each signed in as a different account, see sessionStorage in lib/api.ts)
-// behave like two devices chatting. This is NOT real Nexconn: it must be off (VITE_MOCK_MODE=false) for the demo.
+// behave like two devices chatting. This is NOT real Nexconn: it must be off (VITE_MOCK_CHAT=false) for the demo.
+
+import {
+  AreaCode, BaseChannel, ChannelType, ConnectionStatus as NcStatus, ConnectionStatusHandler, DirectChannel,
+  GroupChannel, MessageHandler, MessageType, NCEngine, SendTextMessageParams,
+  type Message as NcMessage,
+} from "@nexconn/chat";
 
 export type ConversationType = "group" | "direct";
 /** For direct conversations, `id` is the OTHER person's user id. For groups it is the group id. */
@@ -19,7 +25,8 @@ export interface ChatMessage {
 }
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
-const MOCK = import.meta.env.VITE_MOCK_MODE !== "false";
+const MOCK = import.meta.env.VITE_MOCK_CHAT !== "false";
+export const isMockChat = MOCK;
 
 // ---------------- mock internals ----------------
 interface RawMessage {
@@ -74,9 +81,56 @@ function mockSend(kind: ConversationType, target: string, text: string): ChatMes
   return toChatMessage(raw, mock.me);
 }
 
+// ---------------- real SDK helpers ----------------
+// Nexconn ids are letters and digits only, so our UUIDs are sent without dashes. We remember the original
+// spelling so incoming messages map back to our ids.
+const SYSTEM_USER_ID = "reliefrelaysystem";
+const idMap = new Map<string, string>();
+const toNex = (id: string) => { const n = id.replace(/[^A-Za-z0-9]/g, ""); idMap.set(n, id); return n; };
+const fromNex = (n: string) => idMap.get(n)
+  ?? n.replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/i, "$1-$2-$3-$4-$5");
+
+const real = {
+  me: null as string | null,
+  started: false,
+  messageListeners: new Set<(m: ChatMessage) => void>(),
+  statusListeners: new Set<(s: ConnectionStatus) => void>(),
+};
+
+function realStatus(status: NcStatus): ConnectionStatus {
+  if (status === NcStatus.CONNECTED) return "connected";
+  if (status === NcStatus.CONNECTING) return "connecting";
+  return "disconnected";
+}
+
+/** Turn an SDK message into our own ChatMessage. Returns null for non-text messages. */
+function fromNcMessage(m: NcMessage, me: string): ChatMessage | null {
+  if (m.messageType !== MessageType.TEXT) return null;
+  const { channelType, channelId } = m.channelIdentifier;
+  const senderId = fromNex(m.senderUserId);
+  const conversation: Conversation = channelType === ChannelType.GROUP
+    ? { type: "group", id: fromNex(channelId) }
+    : { type: "direct", id: senderId === me ? fromNex(channelId) : senderId };
+  return {
+    id: m.messageId, conversation, senderId, text: String((m.content as { text?: string }).text ?? ""),
+    sentAt: m.sentTime, isSystem: m.senderUserId === SYSTEM_USER_ID,
+  };
+}
+
+const channelFor = (c: Conversation) => (c.type === "group" ? new GroupChannel(toNex(c.id)) : new DirectChannel(toNex(c.id)));
+
+async function realSend(conversation: Conversation, text: string): Promise<ChatMessage> {
+  const me = real.me;
+  if (!me) throw new Error("Not connected to chat");
+  const res = await channelFor(conversation).sendMessage(new SendTextMessageParams({ text }));
+  const sent = res.isOk && res.data ? fromNcMessage(res.data, me) : null;
+  if (!sent) throw new Error(`Message not sent (code ${res.code})`);
+  return { ...sent, conversation }; // for direct messages the conversation id is the other person
+}
+
 // ---------------- public API ----------------
 
-export function initNexconn(_config: { appKey: string }): void {
+export function initNexconn(config: { appKey: string }): void {
   if (MOCK) {
     if (!mock.channel && typeof BroadcastChannel !== "undefined") {
       mock.channel = new BroadcastChannel("reliefrelay-mock-chat");
@@ -84,8 +138,24 @@ export function initNexconn(_config: { appKey: string }): void {
     }
     return;
   }
-  // TODO(nexconn): paste real SDK call here (init with the App Key)
-  throw new Error("Nexconn initNexconn not implemented");
+  if (real.started) return; // the SDK must be initialised exactly once
+  if (!config.appKey) throw new Error("VITE_NEXCONN_APP_KEY is not set");
+  const area = (import.meta.env.VITE_NEXCONN_AREA_CODE as keyof typeof AreaCode | undefined) ?? "SG";
+  NCEngine.initialize({ appKey: config.appKey, areaCode: AreaCode[area] ?? AreaCode.SG });
+  // Register listeners before connecting, as the docs advise.
+  NCEngine.addConnectionStatusHandler("reliefrelay", new ConnectionStatusHandler({
+    onConnectionStatusChanged: ({ status }) => real.statusListeners.forEach((l) => l(realStatus(status))),
+  }));
+  NCEngine.addMessageHandler("reliefrelay", new MessageHandler({
+    onMessageReceived: ({ messages }) => {
+      if (!real.me) return;
+      for (const raw of messages) {
+        const m = fromNcMessage(raw, real.me);
+        if (m) real.messageListeners.forEach((l) => l(m));
+      }
+    },
+  }));
+  real.started = true;
 }
 
 export async function connectNexconn(input: { token: string }): Promise<{ userId: string }> {
@@ -97,8 +167,10 @@ export async function connectNexconn(input: { token: string }): Promise<{ userId
     setStatus("connected");
     return { userId: mock.me };
   }
-  // TODO(nexconn): paste real SDK call here (connect with the token issued by our backend)
-  throw new Error("Nexconn connectNexconn not implemented");
+  const res = await NCEngine.connect({ token: input.token });
+  if (!res.isOk || !res.data) throw new Error(`Could not connect to chat (code ${res.code})`);
+  real.me = fromNex(res.data.userId);
+  return { userId: real.me };
 }
 
 export async function disconnectNexconn(): Promise<void> {
@@ -108,8 +180,8 @@ export async function disconnectNexconn(): Promise<void> {
     setStatus("disconnected");
     return;
   }
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn disconnectNexconn not implemented");
+  await NCEngine.disconnect();
+  real.me = null;
 }
 
 export function onConnectionStatus(handler: (s: ConnectionStatus) => void): () => void {
@@ -117,33 +189,31 @@ export function onConnectionStatus(handler: (s: ConnectionStatus) => void): () =
     mock.statusListeners.add(handler);
     return () => { mock.statusListeners.delete(handler); };
   }
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn onConnectionStatus not implemented");
+  real.statusListeners.add(handler);
+  return () => { real.statusListeners.delete(handler); };
 }
 
 /** Join a group room. The backend has already checked and recorded this user's membership. */
 export async function joinRoom(input: { groupId: string }): Promise<void> {
   if (MOCK) { mock.joined.add(input.groupId); return; }
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn joinRoom not implemented");
+  // Real Nexconn: membership is managed by our backend through the server API (group join), so the client
+  // has nothing to do. We only remember the id spelling for incoming messages.
+  toNex(input.groupId);
 }
 
 export async function leaveRoom(input: { groupId: string }): Promise<void> {
   if (MOCK) { mock.joined.delete(input.groupId); return; }
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn leaveRoom not implemented");
+  // Real Nexconn: nothing to do. Closing the screen does not remove the user from the group.
 }
 
 export async function sendGroupMessage(input: { groupId: string; text: string }): Promise<ChatMessage> {
   if (MOCK) return mockSend("group", input.groupId, input.text);
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn sendGroupMessage not implemented");
+  return realSend({ type: "group", id: input.groupId }, input.text);
 }
 
 export async function sendDirectMessage(input: { toUserId: string; text: string }): Promise<ChatMessage> {
   if (MOCK) return mockSend("direct", input.toUserId, input.text);
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn sendDirectMessage not implemented");
+  return realSend({ type: "direct", id: input.toUserId }, input.text);
 }
 
 /** Subscribe to incoming messages (groups already joined, and direct messages to me). Returns unsubscribe. */
@@ -152,8 +222,8 @@ export function onMessage(handler: (m: ChatMessage) => void): () => void {
     mock.messageListeners.add(handler);
     return () => { mock.messageListeners.delete(handler); };
   }
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn onMessage not implemented");
+  real.messageListeners.add(handler);
+  return () => { real.messageListeners.delete(handler); };
 }
 
 /** Load recent history for one conversation, oldest first. */
@@ -171,6 +241,16 @@ export async function getHistory(input: { conversation: Conversation; limit: num
       .slice(-limit)
       .map((r) => toChatMessage(r, me));
   }
-  // TODO(nexconn): paste real SDK call here
-  throw new Error("Nexconn getHistory not implemented");
+  const me = real.me;
+  if (!me) throw new Error("Not connected to chat");
+  const query = BaseChannel.createMessagesQuery({
+    channelIdentifier: channelFor(input.conversation).identifier,
+    startTime: input.before ?? Date.now(), pageSize: Math.min(Math.max(input.limit, 1), 100), isAscending: false,
+  });
+  const res = await query.loadNextPage();
+  if (!res.isOk || !res.data) throw new Error(`Could not load chat history (code ${res.code})`);
+  return res.data.data
+    .map((m) => fromNcMessage(m, me))
+    .filter((m): m is ChatMessage => m !== null)
+    .sort((a, b) => a.sentAt - b.sentAt);
 }

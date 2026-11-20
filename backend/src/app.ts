@@ -26,7 +26,10 @@ export function createApp() {
   app.use(cors());
   app.use(express.json());
 
-  app.get("/api/health", (_req, res) => res.json({ ok: true, mockMode: config.mockMode }));
+  app.get("/api/health", (_req, res) => res.json({
+    ok: true, mockChat: config.mockChat, mockAi: config.mockAi, mockDb: config.mockDb,
+    mockMode: config.mockChat || config.mockAi || config.mockDb,
+  }));
 
   // ---- auth (mock accounts) ----
   app.post("/api/auth/login", (req, res) => {
@@ -35,9 +38,9 @@ export function createApp() {
     res.json(result);
   });
 
-  // Role switcher on the login page: list seeded demo accounts (MOCK_MODE only).
+  // Role switcher on the login page: list seeded demo accounts (MOCK_DB only).
   app.get("/api/auth/demo-users", (_req, res) => {
-    if (!config.mockMode) return void res.status(404).json({ error: "Not available" });
+    if (!config.mockDb) return void res.status(404).json({ error: "Not available" });
     res.json(db.users.map((u) => ({ ...toPublic(u), password: u.password })));
   });
 

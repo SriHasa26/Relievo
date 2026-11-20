@@ -1,4 +1,4 @@
-// Mock authentication (MOCK_MODE): seeded accounts log in with email + password and get an opaque token.
+// Mock authentication (MOCK_DB): seeded accounts log in with email + password and get an opaque token.
 // TODO(supabase): in real mode, verify the Supabase JWT here instead. Routes only use req.user.
 import { randomUUID } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";

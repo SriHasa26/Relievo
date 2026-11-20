@@ -1,4 +1,4 @@
-// In-memory data store used in MOCK_MODE. Plain arrays, no magic.
+// In-memory data store used in MOCK_DB. Plain arrays, no magic.
 // The Supabase schema in /supabase/migrations mirrors these tables.
 // TODO(supabase): implement the same access on top of supabase-js for real mode.
 import { randomUUID } from "node:crypto";

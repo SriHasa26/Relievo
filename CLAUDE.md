@@ -32,7 +32,7 @@ All Nexconn calls live in exactly two files, and nothing else may import Nexconn
 - `backend/src/integrations/nexconn.adapter.ts`: issue user token, create group, add/remove members, post system message
 - `frontend/src/integrations/nexconnClient.ts`: init, connect with token, join room, send/receive messages, history
 
-Each exported function has a typed signature, a `MOCK_MODE` implementation and a `// TODO(nexconn): paste real SDK call here` marker. Never guess an SDK method name or endpoint; leave the placeholder. The UI uses our own `ChatMessage` type, never SDK types.
+Each exported function has a typed signature, a mock implementation (`MOCK_CHAT` / `VITE_MOCK_CHAT`) and a real one. The real code follows the installed `nexconn-chat` skill, the docs it fetches and the installed SDK type definitions. Never guess an SDK method name or endpoint; if it cannot be verified, leave a `// TODO(nexconn)` marker and ask. The UI uses our own `ChatMessage` type, never SDK types.
 
 ## Environment variables
 
@@ -44,13 +44,16 @@ GEMINI_API_KEY=paste your api
 SUPABASE_URL=paste your api
 SUPABASE_ANON_KEY=paste your api
 SUPABASE_SERVICE_ROLE_KEY=paste your api
-MOCK_MODE=true
+NEXCONN_API_DOMAIN=paste your api   # data-center host, e.g. api.sg-light-api.com
+MOCK_CHAT=true
+MOCK_AI=true
+MOCK_DB=true
 ```
-Frontend `.env.example` (public values only, `VITE_` prefix): `VITE_NEXCONN_APP_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`, `VITE_MOCK_MODE`. Never commit real `.env` files.
+Frontend `.env.example` (public values only, `VITE_` prefix): `VITE_NEXCONN_APP_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`, `VITE_NEXCONN_AREA_CODE`, `VITE_MOCK_CHAT`. Never commit real `.env` files.
 
-## MOCK_MODE rule
+## Mock flags rule
 
-`MOCK_MODE=true` is dev-only: fake AI output and an in-memory chat stub so the app runs before keys exist. It must be `false` for the demo, the deployed build and the recorded video. `/api/health` and the UI must visibly show when mock mode is on.
+`MOCK_CHAT`, `MOCK_AI`, `MOCK_DB` (backend) and `VITE_MOCK_CHAT` (frontend) are dev-only and default to `true`: in-memory chat stub, keyword "AI", in-memory data with demo logins. Each can be turned off independently. All must be `false` for the demo, the deployed build and the recorded video. `/api/health` and the UI must visibly show when a mock is on.
 
 ## Security rules
 

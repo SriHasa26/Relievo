@@ -1,8 +1,8 @@
 // One chat window: a group room or a direct conversation. All messaging goes through nexconnClient.
 import { useEffect, useRef, useState } from "react";
 import {
-  getHistory, joinRoom, leaveRoom, onMessage, sendDirectMessage, sendGroupMessage,
-  type ChatMessage, type Conversation,
+  getHistory, isMockChat, joinRoom, leaveRoom, onConnectionStatus, onMessage, sendDirectMessage, sendGroupMessage,
+  type ChatMessage, type ConnectionStatus, type Conversation,
 } from "@/integrations/nexconnClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +16,16 @@ export function ChatPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
+  const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [attempt, setAttempt] = useState(0); // bumped by the Retry button
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     setMessages([]);
+    setError("");
+    const stopStatus = onConnectionStatus(setStatus);
     (async () => {
       try {
         const userId = await ensureConnected();
@@ -29,6 +33,7 @@ export function ChatPanel({
         const history = await getHistory({ conversation, limit: 50 });
         if (cancelled) return;
         setMe(userId);
+        setStatus("connected");
         setMessages(history);
         unsubscribe = onMessage((m) => {
           if (m.conversation.type !== conversation.type || m.conversation.id !== conversation.id) return;
@@ -41,10 +46,11 @@ export function ChatPanel({
     return () => {
       cancelled = true;
       unsubscribe?.();
+      stopStatus();
       if (conversation.type === "group") void leaveRoom({ groupId: conversation.id }).catch(() => undefined);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.type, conversation.id]);
+  }, [conversation.type, conversation.id, attempt]);
 
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [messages]);
 
@@ -68,7 +74,7 @@ export function ChatPanel({
       <CardHeader>
         <CardTitle>
           {title}
-          {import.meta.env.VITE_MOCK_MODE !== "false" && (
+          {isMockChat && (
             <span className="ml-2 text-xs font-normal text-amber-700">mock chat (not Nexconn)</span>
           )}
         </CardTitle>
@@ -92,7 +98,15 @@ export function ChatPanel({
           })}
           <div ref={bottom} />
         </div>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        <p className="text-xs text-slate-500">
+          Chat: {status === "connected" ? "connected" : status === "connecting" ? "connecting…" : "disconnected"}
+        </p>
+        {error && (
+          <div role="alert" className="flex items-center gap-2 text-sm text-red-700">
+            <span>Chat problem: {error}</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => setAttempt((n) => n + 1)}>Retry</Button>
+          </div>
+        )}
         <form onSubmit={send} className="flex gap-2">
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message…" aria-label="Message"
             className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm" />

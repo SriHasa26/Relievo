@@ -1,5 +1,6 @@
 // Incident chat rooms. Supabase (db.assignments / db.channels) is the source of truth for WHO may be in a room;
 // Nexconn only carries the messages. Every change here goes through the adapter, never Nexconn directly.
+import { randomUUID } from "node:crypto";
 import * as nexconn from "../integrations/nexconn.adapter";
 import { db, logEvent } from "../store/store";
 import { HttpError, activeAssignment, getIncident } from "./incidents";
@@ -11,7 +12,7 @@ const channelFor = (incidentId: string) => db.channels.find((c) => c.incident_id
 export async function ensureRoomFor(incident: Incident, coordinatorId: string, volunteerId: string): Promise<string> {
   let channel = channelFor(incident.id);
   if (!channel) {
-    const groupId = `room-${incident.id}`;
+    const groupId = randomUUID(); // opaque id, not derived from the incident id
     await nexconn.createGroup({
       groupId, name: `Incident: ${incident.category} · ${incident.address_text || incident.id.slice(0, 8)}`,
       ownerId: coordinatorId, memberIds: [volunteerId],
@@ -84,7 +85,7 @@ export async function chatToken(user: User) {
   return nexconn.issueUserToken({ userId: user.id, name: user.name });
 }
 
-/** Rebuild mock groups for incidents that were seeded with rooms (MOCK_MODE start-up). */
+/** Rebuild mock groups for incidents that were seeded with rooms (start-up). */
 export async function seedMockRooms() {
   for (const channel of db.channels) {
     const incident = db.incidents.find((i) => i.id === channel.incident_id);
