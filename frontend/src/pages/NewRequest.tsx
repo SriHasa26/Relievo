@@ -92,8 +92,17 @@ export default function NewRequest() {
         </CardContent>
       </Card>
 
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      <Button type="submit" size="lg" disabled={busy}>{busy ? "Sending…" : "Send request"}</Button>
+      {error && (
+        <p role="alert" className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+          <CircleAlert className="size-4 shrink-0" aria-hidden />{error}
+        </p>
+      )}
+      <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy}><Send className="size-4" aria-hidden />{busy ? "Sending…" : "Send request"}</Button>
+      {sent && (
+        <div aria-live="polite" className="toast absolute inset-0 z-[1000] grid place-items-center rounded-2xl bg-white/90">
+          <div className="flex flex-col items-center gap-2"><SuccessCheck size={64} /><p className="text-lg font-bold text-slate-900">Request sent</p></div>
+        </div>
+      )}
     </form>
   );
 }

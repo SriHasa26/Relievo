@@ -52,11 +52,11 @@ export default function Login() {
       <div ref={stage} className="parallax relative mx-auto max-w-4xl px-4 py-10 sm:py-16">
         <div aria-hidden className="layer pointer-events-none absolute -left-10 top-4 size-56 rounded-full bg-blue-500/30 blur-3xl" data-depth="40" />
         <div aria-hidden className="layer pointer-events-none absolute -right-6 top-40 size-64 rounded-full bg-violet-500/25 blur-3xl" data-depth="70" />
-        <div aria-hidden className="layer pointer-events-none absolute right-6 top-2 hidden rotate-6 sm:block" data-depth="90">
-          <GlassCard className="flex items-center gap-2 px-3 py-2 text-xs"><span className="led led-glow tone-red" /> Critical · water · 2 min ago</GlassCard>
+        <div aria-hidden className="layer pointer-events-none absolute -right-8 top-6 hidden rotate-6 lg:block" data-depth="90">
+          <GlassCard className="flex items-center gap-2 px-3 py-2 text-xs"><span className="led led-glow tone-red" /> Critical Â· water Â· 2 min ago</GlassCard>
         </div>
-        <div aria-hidden className="layer pointer-events-none absolute left-2 top-64 hidden -rotate-3 sm:block" data-depth="60">
-          <GlassCard className="flex items-center gap-2 px-3 py-2 text-xs"><span className="led led-glow tone-blue" /> Verified · volunteer matched</GlassCard>
+        <div aria-hidden className="layer pointer-events-none absolute -left-28 top-72 hidden -rotate-3 lg:block" data-depth="60">
+          <GlassCard className="flex items-center gap-2 px-3 py-2 text-xs"><span className="led led-glow tone-blue" /> Verified Â· volunteer matched</GlassCard>
         </div>
 
         <div className="layer relative space-y-2" data-depth="20">

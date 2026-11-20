@@ -1,8 +1,10 @@
 // Minimal ResourceBridge: see relief stock; a coordinator allocates some of it to one open incident.
 import { useCallback, useEffect, useState } from "react";
+import { Boxes, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState, useToast } from "@/components/kit";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { IncidentListItem } from "@/lib/types";
@@ -21,6 +23,7 @@ export default function Resources() {
   const [rows, setRows] = useState<ResourceRow[]>([]);
   const [qty, setQty] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
+  const toast = useToast();
 
   const loadRows = useCallback(() => {
     const q = incidentId ? `?incident_id=${incidentId}` : "";
@@ -39,6 +42,7 @@ export default function Resources() {
     try {
       await api(`/api/resources/${r.id}/allocate`, { body: { incident_id: incidentId, quantity: Number(qty[r.id] ?? 0) } });
       setMessage(`Allocated ${qty[r.id]} ${r.unit} of ${r.name}.`);
+      toast("Resources reserved for the incident");
       setQty((q) => ({ ...q, [r.id]: "" }));
       loadRows();
     } catch (e) {
@@ -48,7 +52,7 @@ export default function Resources() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Relief resources</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-bold"><Boxes className="size-6 text-blue-400" aria-hidden />Relief resources</h1>
       <p className="text-xs text-amber-800">Synthetic demo stock from a synthetic NGO.</p>
 
       {isCoordinator && (
@@ -67,9 +71,10 @@ export default function Resources() {
       )}
       {message && <p role="status" className="text-sm text-blue-800">{message}</p>}
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="stagger grid gap-3 md:grid-cols-2">
+        {rows.length === 0 && <div className="md:col-span-2"><EmptyState icon={<Package className="size-6" />} title="No resources listed" /></div>}
         {rows.map((r) => (
-          <Card key={r.id} className={r.relevant ? "border-green-400" : ""}>
+          <Card key={r.id} className={r.relevant ? "border-green-500 border-2" : ""}>
             <CardHeader>
               <CardTitle>
                 {r.name} {r.relevant && <Badge tone="green">fits this incident</Badge>}

@@ -37,7 +37,7 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
   await snap(p, tag, w, "02-citizen-requests");
   await p.goto(`${BASE}/citizen/new`);
   await snap(p, tag, w, "03-citizen-new-request");
-  await p.getByRole("button", { name: "Send request" }).click(); // shows the validation message
+  await p.getByPlaceholder(/Water is entering/).fill("Water is entering our ground floor."); await p.getByRole("button", { name: "Send request" }).click(); // no location chosen: shows the validation message
   await snap(p, tag, w, "04-citizen-validation");
   await p.goto(`${BASE}/citizen`);
   const mine = await p.locator('a[href^="/incidents/"]').first().getAttribute("href");
