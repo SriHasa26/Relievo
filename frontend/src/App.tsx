@@ -1,17 +1,16 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout, RequireRole } from "@/components/Layout";
 import CommandCentre from "@/pages/CommandCentre";
+import Impact from "@/pages/Impact";
 import IncidentDetail from "@/pages/IncidentDetail";
 import IncidentList from "@/pages/IncidentList";
 import Login from "@/pages/Login";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
+import Resources from "@/pages/Resources";
 import Messages from "@/pages/Messages";
 import NewRequest from "@/pages/NewRequest";
 import { useAuth } from "@/lib/auth";
 import { HOME } from "@/lib/types";
-
-// CP1: role-based routing with placeholder home pages. Real pages arrive in later checkpoints.
-const Placeholder = ({ title }: { title: string }) => <h1 className="text-xl font-semibold">{title} (coming soon)</h1>;
 
 function Home() {
   const { user } = useAuth();
@@ -29,8 +28,9 @@ export default function App() {
         <Route path="/incidents/:id" element={<IncidentDetail />} />
         <Route path="/volunteer" element={<RequireRole roles={["volunteer"]}><VolunteerDashboard /></RequireRole>} />
         <Route path="/coordinator" element={<RequireRole roles={["coordinator"]}><CommandCentre /></RequireRole>} />
+        <Route path="/impact" element={<RequireRole roles={["coordinator"]}><Impact /></RequireRole>} />
         <Route path="/messages" element={<RequireRole roles={["coordinator", "volunteer"]}><Messages /></RequireRole>} />
-        <Route path="/resources" element={<RequireRole roles={["coordinator", "ngo"]}><Placeholder title="Resources" /></RequireRole>} />
+        <Route path="/resources" element={<RequireRole roles={["coordinator", "ngo"]}><Resources /></RequireRole>} />
       </Route>
     </Routes>
   );

@@ -7,6 +7,8 @@ import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
 } from "./services/dispatch";
 import { chatContacts, chatToken, roomAccess } from "./services/rooms";
+import { computeMetrics } from "./services/metrics";
+import { allocateResource, listResources } from "./services/resources";
 import {
   HttpError, incidentDetail, incidentEvents, listIncidents, submitIncident, verifyIncident,
 } from "./services/incidents";
@@ -92,6 +94,16 @@ export function createApp() {
   app.post("/api/chat/token", requireAuth, wrap(async (req, res) => res.json(await chatToken(req.user!))));
   app.get("/api/incidents/:id/room", requireAuth, wrap(async (req, res) => res.json(await roomAccess(req.user!, param(req, "id")))));
   app.get("/api/chat/contacts", requireAuth, wrap((req, res) => res.json(chatContacts(req.user!))));
+
+  // ---- resources and impact ----
+  app.get("/api/resources", requireAuth, requireRole("coordinator", "ngo"), wrap((req, res) => {
+    res.json(listResources(typeof req.query.incident_id === "string" ? req.query.incident_id : undefined));
+  }));
+  app.post("/api/resources/:id/allocate", requireAuth, requireRole("coordinator"), wrap((req, res) => {
+    const b = req.body ?? {};
+    res.status(201).json(allocateResource(req.user!, param(req, "id"), String(b.incident_id ?? ""), Number(b.quantity)));
+  }));
+  app.get("/api/metrics", requireAuth, requireRole("coordinator"), wrap((_req, res) => res.json(computeMetrics())));
 
   // ---- error handler ----
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

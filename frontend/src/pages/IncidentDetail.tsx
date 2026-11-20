@@ -89,6 +89,17 @@ export default function IncidentDetail() {
         <p className="text-sm text-slate-600">Your assignment: {data.assignments.at(-1)!.status}</p>
       )}
 
+      {isCoordinator && data.allocations.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Relief resources allocated</CardTitle></CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-5 text-sm">
+              {data.allocations.map((a) => <li key={a.id}>{a.allocated_quantity} × {a.resource_name}</li>)}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {showChat && (
         <div className="grid gap-4 lg:grid-cols-2">
           <RoomChat incidentId={incident.id} />
