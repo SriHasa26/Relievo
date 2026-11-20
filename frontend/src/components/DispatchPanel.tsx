@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NeuMeter, useToast } from "@/components/kit";
 import { api } from "@/lib/api";
 import type { Assignment, IncidentDetailData, MatchResult, ScoreBreakdown } from "@/lib/types";
 
@@ -13,12 +14,13 @@ const PARTS: Array<[keyof typeof WEIGHTS, string]> = [
 
 function Breakdown({ b }: { b: ScoreBreakdown }) {
   return (
-    <div className="grid grid-cols-4 gap-2 text-center text-xs">
+    <div className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
       {PARTS.map(([k, name]) => (
-        <div key={k} className="rounded bg-slate-50 p-1.5">
+        <div key={k} className="space-y-1 rounded-lg bg-slate-50 p-2">
           <div className="text-slate-500">{name} ({k})</div>
           <div className="font-semibold">{b[k]}</div>
-          <div className="text-slate-400">×{WEIGHTS[k]} = {(b[k] * WEIGHTS[k]).toFixed(1)}</div>
+          <NeuMeter value={b[k]} label={`${name} score`} />
+          <div className="text-slate-500">×{WEIGHTS[k]} = {(b[k] * WEIGHTS[k]).toFixed(1)}</div>
         </div>
       ))}
     </div>
@@ -35,12 +37,12 @@ function MatchList({ matches, onPick, verb }: { matches: MatchResult[]; onPick: 
       </p>
       {eligible.length === 0 && <p className="rounded bg-amber-50 p-2 text-sm text-amber-900">No eligible volunteer right now. See why below.</p>}
       {eligible.map((m, idx) => (
-        <div key={m.volunteer_id} className="space-y-2 rounded border border-slate-200 p-3">
+        <div key={m.volunteer_id} className="space-y-2 rounded border border-slate-200 p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={idx === 0 ? "green" : "gray"}>#{idx + 1}</Badge>
             <span className="font-medium">{m.name}</span>
             <span className="text-sm font-semibold">S = {m.breakdown!.total}</span>
-            <Button size="sm" className="ml-auto" onClick={() => onPick(m.volunteer_id)}>{verb}</Button>
+            <Button variant="physical" size="sm" className="ml-auto h-9 px-4" onClick={() => onPick(m.volunteer_id)}>{verb}</Button>
           </div>
           <p className="text-sm text-slate-700">{m.reason}</p>
           <Breakdown b={m.breakdown!} />
@@ -66,6 +68,7 @@ export function DispatchPanel({ data, onChange }: { data: IncidentDetailData; on
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [showReassign, setShowReassign] = useState(false);
   const [error, setError] = useState("");
+  const toast = useToast();
   const wantMatches = incident.status === "verified" || showReassign;
 
   const loadMatches = useCallback(() => {
@@ -73,9 +76,9 @@ export function DispatchPanel({ data, onChange }: { data: IncidentDetailData; on
   }, [incident.id]);
   useEffect(() => { if (wantMatches) loadMatches(); }, [wantMatches, loadMatches]);
 
-  const run = async (fn: () => Promise<unknown>) => {
+  const run = async (fn: () => Promise<unknown>, done: string) => {
     setError("");
-    try { await fn(); setShowReassign(false); onChange(); } catch (e) { setError((e as Error).message); loadMatches(); }
+    try { await fn(); setShowReassign(false); toast(done); onChange(); } catch (e) { setError((e as Error).message); loadMatches(); }
   };
 
   if (!["verified", "assigned", "in_progress"].includes(incident.status)) return null;
@@ -88,7 +91,7 @@ export function DispatchPanel({ data, onChange }: { data: IncidentDetailData; on
 
         {incident.status === "verified" && (
           <MatchList matches={matches} verb="Approve assignment"
-            onPick={(volunteerId) => run(() => api(`/api/incidents/${incident.id}/assign`, { body: { volunteerId } }))} />
+            onPick={(volunteerId) => run(() => api(`/api/incidents/${incident.id}/assign`, { body: { volunteerId } }), "Assignment approved")} />
         )}
 
         {active && (
@@ -105,14 +108,14 @@ export function DispatchPanel({ data, onChange }: { data: IncidentDetailData; on
                 {showReassign ? "Cancel reassign" : "Reassign"}
               </Button>
               {incident.status === "in_progress" && (
-                <Button size="sm" onClick={() => run(() => api(`/api/incidents/${incident.id}/status`, { body: { status: "resolved" } }))}>
+                <Button size="sm" onClick={() => run(() => api(`/api/incidents/${incident.id}/status`, { body: { status: "resolved" } }), "Incident closed")}>
                   Mark resolved
                 </Button>
               )}
             </div>
             {showReassign && (
               <MatchList matches={matches} verb="Reassign to this volunteer"
-                onPick={(volunteerId) => run(() => api(`/api/assignments/${active.id}/reassign`, { body: { volunteerId } }))} />
+                onPick={(volunteerId) => run(() => api(`/api/assignments/${active.id}/reassign`, { body: { volunteerId } }), "Volunteer changed")} />
             )}
           </div>
         )}

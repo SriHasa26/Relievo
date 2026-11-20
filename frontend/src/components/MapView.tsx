@@ -17,8 +17,12 @@ export function IncidentMap({
   incidents, onSelect, height = 380,
 }: { incidents: IncidentListItem[]; onSelect?: (id: string) => void; height?: number }) {
   return (
-    <MapContainer center={MAP_CENTER} zoom={13} style={{ height }} className="rounded-lg">
+    <MapContainer center={MAP_CENTER} zoom={13} style={{ height: `${height / 16}rem` }} className="rounded-lg">
       <Tiles />
+      {incidents.filter((i) => i.urgency === "critical" && i.status !== "resolved" && i.status !== "rejected").map((i) => (
+        <CircleMarker key={`ring-${i.id}`} center={[i.lat, i.lng]} radius={10} interactive={false}
+          pathOptions={{ color: URGENCY_COLOR.critical, fill: false, weight: 3, className: "pulse-ring" }} />
+      ))}
       {incidents.map((i) => (
         <CircleMarker
           key={i.id} center={[i.lat, i.lng]} radius={i.status === "resolved" || i.status === "rejected" ? 6 : 10}
@@ -49,7 +53,7 @@ export function LocationPicker({
   value, onChange,
 }: { value: { lat: number; lng: number } | null; onChange: (lat: number, lng: number) => void }) {
   return (
-    <MapContainer center={value ? [value.lat, value.lng] : MAP_CENTER} zoom={13} style={{ height: 280 }} className="rounded-lg">
+    <MapContainer center={value ? [value.lat, value.lng] : MAP_CENTER} zoom={13} style={{ height: "17.5rem" }} className="rounded-lg">
       <Tiles />
       <ClickToPick onPick={onChange} />
       {value && <CircleMarker center={[value.lat, value.lng]} radius={10} pathOptions={{ color: "#dc2626", fillOpacity: 0.7 }} />}

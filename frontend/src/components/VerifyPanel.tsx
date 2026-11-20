@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UrgencyGauge, useToast } from "@/components/kit";
 import { api } from "@/lib/api";
 import type { Category, IncidentDetailData, Urgency } from "@/lib/types";
 
@@ -35,7 +36,7 @@ export function ReportVsAi({ data }: { data: IncidentDetailData }) {
           {analysis ? (
             <>
               <p><b>Category:</b> {analysis.extracted_data.category}</p>
-              <p><b>Urgency:</b> {analysis.extracted_data.urgency}</p>
+              <div className="flex items-center gap-3"><p><b>Urgency:</b> {analysis.extracted_data.urgency}</p><UrgencyGauge urgency={analysis.extracted_data.urgency} size={56} /></div>
               <p><b>People:</b> {analysis.extracted_data.people_affected ?? "unknown"}</p>
               <p><b>Needs:</b> {analysis.extracted_data.needs.join(", ") || "none detected"}</p>
               <p><b>Vulnerable:</b> {analysis.extracted_data.vulnerable_persons.join(", ") || "none detected"}</p>
@@ -63,6 +64,7 @@ export function VerifyPanel({ data, onDone }: { data: IncidentDetailData; onDone
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   const send = async (decision: "verify" | "reject") => {
     setBusy(true);
@@ -78,6 +80,7 @@ export function VerifyPanel({ data, onDone }: { data: IncidentDetailData; onDone
           },
         },
       });
+      toast(decision === "verify" ? "Incident approved for dispatch" : "Incident rejected");
       onDone();
     } catch (e) {
       setError((e as Error).message);
@@ -115,8 +118,8 @@ export function VerifyPanel({ data, onDone }: { data: IncidentDetailData; onDone
         </label>
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div className="flex gap-2">
-          <Button disabled={busy} onClick={() => send("verify")}>Verify incident</Button>
-          <Button disabled={busy} variant="destructive" onClick={() => send("reject")}>Reject</Button>
+          <Button variant="physical" size="lg" disabled={busy} onClick={() => send("verify")}>Verify incident</Button>
+          <Button size="lg" disabled={busy} variant="destructive" onClick={() => send("reject")}>Reject</Button>
         </div>
       </CardContent>
     </Card>

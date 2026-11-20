@@ -95,7 +95,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
     radial-gradient(50rem 30rem at 95% 0%, rgb(124 58 237 / 0.2), transparent 60%),
     radial-gradient(40rem 30rem at 50% 110%, rgb(14 165 233 / 0.14), transparent 60%),
     var(--bg);
-  background-attachment: fixed;
+  color: var(--text);
 }
 .calm.app-root { background: linear-gradient(180deg, #eaf1fb 0, var(--bg) 18rem); }
 .page-enter { animation: page-in var(--dur-slow) var(--ease-out) both; }
