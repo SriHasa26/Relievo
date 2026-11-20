@@ -1,9 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { HOME, type Role } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useLargeText } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 
 const NAV: Record<Role, Array<[string, string]>> = {
@@ -12,16 +13,6 @@ const NAV: Record<Role, Array<[string, string]>> = {
   coordinator: [["/coordinator", "Command centre"], ["/impact", "Impact"], ["/resources", "Resources"]],
   ngo: [["/resources", "Resources"]],
 };
-
-/** Large-text accessibility toggle: persisted, applied as a class on <html>. */
-function useLargeText() {
-  const [on, setOn] = useState(() => localStorage.getItem("rr-large-text") === "1");
-  useEffect(() => {
-    document.documentElement.classList.toggle("large-text", on);
-    localStorage.setItem("rr-large-text", on ? "1" : "0");
-  }, [on]);
-  return [on, setOn] as const;
-}
 
 export function Layout() {
   const { user, loading, signOut } = useAuth();

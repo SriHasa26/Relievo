@@ -1,6 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout, RequireRole } from "@/components/Layout";
+import CommandCentre from "@/pages/CommandCentre";
+import IncidentDetail from "@/pages/IncidentDetail";
+import IncidentList from "@/pages/IncidentList";
 import Login from "@/pages/Login";
+import NewRequest from "@/pages/NewRequest";
 import { useAuth } from "@/lib/auth";
 import { HOME } from "@/lib/types";
 
@@ -18,9 +22,11 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/citizen" element={<RequireRole roles={["citizen"]}><Placeholder title="My requests" /></RequireRole>} />
-        <Route path="/volunteer" element={<RequireRole roles={["volunteer"]}><Placeholder title="My assignments" /></RequireRole>} />
-        <Route path="/coordinator" element={<RequireRole roles={["coordinator"]}><Placeholder title="Command centre" /></RequireRole>} />
+        <Route path="/citizen" element={<RequireRole roles={["citizen"]}><IncidentList title="My requests" /></RequireRole>} />
+        <Route path="/citizen/new" element={<RequireRole roles={["citizen"]}><NewRequest /></RequireRole>} />
+        <Route path="/incidents/:id" element={<IncidentDetail />} />
+        <Route path="/volunteer" element={<RequireRole roles={["volunteer"]}><IncidentList title="My assignments" /></RequireRole>} />
+        <Route path="/coordinator" element={<RequireRole roles={["coordinator"]}><CommandCentre /></RequireRole>} />
         <Route path="/resources" element={<RequireRole roles={["coordinator", "ngo"]}><Placeholder title="Resources" /></RequireRole>} />
       </Route>
     </Routes>

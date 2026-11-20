@@ -1,8 +1,19 @@
 import cors from "cors";
-import express from "express";
+import express, { type NextFunction, type Request, type RequestHandler, type Response } from "express";
 import { config } from "./config";
-import { login, requireAuth, toPublic, type AuthedRequest } from "./auth";
+import { login, requireAuth, requireRole, toPublic, type AuthedRequest } from "./auth";
 import { db } from "./store/store";
+import {
+  HttpError, incidentDetail, incidentEvents, listIncidents, submitIncident, verifyIncident,
+} from "./services/incidents";
+
+type Handler = (req: AuthedRequest, res: Response) => unknown | Promise<unknown>;
+/** Lets handlers throw HttpError (sync or async) and have it turned into a JSON error response. */
+const wrap = (fn: Handler): RequestHandler => (req, res, next) => {
+  Promise.resolve(fn(req as AuthedRequest, res)).catch(next);
+};
+
+const param = (req: Request, name: string) => String(req.params[name]);
 
 export function createApp() {
   const app = express();
@@ -25,6 +36,34 @@ export function createApp() {
   });
 
   app.get("/api/me", requireAuth, (req: AuthedRequest, res) => res.json(toPublic(req.user!)));
+
+  // ---- incidents ----
+  app.post("/api/incidents", requireAuth, requireRole("citizen"), wrap(async (req, res) => {
+    const b = req.body ?? {};
+    const incident = await submitIncident(req.user!, {
+      text: String(b.text ?? ""), lat: Number(b.lat), lng: Number(b.lng),
+      address_text: b.address_text ? String(b.address_text) : "",
+      people_affected: b.people_affected === "" || b.people_affected == null ? null : Number(b.people_affected),
+    });
+    res.status(201).json(incident);
+  }));
+
+  app.get("/api/incidents", requireAuth, wrap((req, res) => res.json(listIncidents(req.user!))));
+  app.get("/api/incidents/:id", requireAuth, wrap((req, res) => res.json(incidentDetail(req.user!, param(req, "id")))));
+  app.get("/api/incidents/:id/events", requireAuth, wrap((req, res) => res.json(incidentEvents(req.user!, param(req, "id")))));
+
+  app.post("/api/incidents/:id/verify", requireAuth, requireRole("coordinator"), wrap((req, res) => {
+    const b = req.body ?? {};
+    if (b.decision !== "verify" && b.decision !== "reject") throw new HttpError(400, "decision must be verify or reject");
+    res.json(verifyIncident(req.user!, param(req, "id"), { decision: b.decision, reason: b.reason, edits: b.edits }));
+  }));
+
+  // ---- error handler ----
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof HttpError) return void res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  });
 
   return app;
 }
