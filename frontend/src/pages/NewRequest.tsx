@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { CircleAlert, MapPin, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LocationPicker } from "@/components/MapView";
+import { NeuToggle, SuccessCheck, useToast } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -16,6 +18,8 @@ export default function NewRequest() {
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+  const toast = useToast();
 
   const pickPlace = (name: string) => {
     setPlace(name);
@@ -32,7 +36,9 @@ export default function NewRequest() {
       const incident = await api<{ id: string }>("/api/incidents", {
         body: { text, people_affected: people, lat: loc.lat, lng: loc.lng, address_text: place },
       });
-      navigate(`/incidents/${incident.id}`);
+      setSent(true);
+      toast("Your request was sent");
+      setTimeout(() => navigate(`/incidents/${incident.id}`), 900);
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -40,14 +46,14 @@ export default function NewRequest() {
   };
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-2xl space-y-4">
+    <form onSubmit={submit} className="relative mx-auto max-w-2xl space-y-4">
       <h1 className="text-2xl font-bold">Request emergency help</h1>
       <p className="text-sm text-slate-600">
         Describe what is happening. A coordinator will review your request. This is not a replacement for official
         emergency services: if life is in immediate danger, call your local emergency number.
       </p>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={large} onChange={(e) => setLarge(e.target.checked)} className="size-4" />
+      <label className="flex items-center gap-3 text-sm font-medium">
+        <NeuToggle checked={large} onChange={setLarge} label="Large text" />
         Large text
       </label>
 
@@ -59,7 +65,7 @@ export default function NewRequest() {
             <textarea
               required rows={5} value={text} onChange={(e) => setText(e.target.value)}
               placeholder="e.g. Water is entering our ground floor. Six people, including an elderly person. We need drinking water."
-              className="mt-1 w-full rounded border border-slate-300 p-3"
+              className="mt-1 w-full rounded-lg border border-slate-300 p-3 text-base" aria-invalid={Boolean(error) && !text.trim()}
             />
           </label>
           <label className="block">
@@ -71,7 +77,7 @@ export default function NewRequest() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Where are you?</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="size-4" aria-hidden />Where are you?</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <label className="block">
             <span className="text-sm font-medium">Pick a known place</span>
