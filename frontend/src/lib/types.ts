@@ -24,7 +24,7 @@ export interface Incident {
   is_synthetic: boolean; created_at: string;
 }
 export interface IncidentListItem extends Incident {
-  assignee: { id: string; name: string; status: AssignmentStatus } | null;
+  assignee: { id: string; name: string; status: AssignmentStatus; assignment_id: string } | null;
 }
 
 export interface Extraction {

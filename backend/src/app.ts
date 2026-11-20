@@ -4,6 +4,9 @@ import { config } from "./config";
 import { login, requireAuth, requireRole, toPublic, type AuthedRequest } from "./auth";
 import { db } from "./store/store";
 import {
+  assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
+} from "./services/dispatch";
+import {
   HttpError, incidentDetail, incidentEvents, listIncidents, submitIncident, verifyIncident,
 } from "./services/incidents";
 
@@ -56,6 +59,31 @@ export function createApp() {
     const b = req.body ?? {};
     if (b.decision !== "verify" && b.decision !== "reject") throw new HttpError(400, "decision must be verify or reject");
     res.json(verifyIncident(req.user!, param(req, "id"), { decision: b.decision, reason: b.reason, edits: b.edits }));
+  }));
+
+  // ---- dispatch (ResponderMatch) ----
+  app.get("/api/incidents/:id/matches", requireAuth, requireRole("coordinator"), wrap((req, res) => res.json(matchesFor(param(req, "id")))));
+
+  app.post("/api/incidents/:id/assign", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
+    res.status(201).json(await assignVolunteer(req.user!, param(req, "id"), String(req.body?.volunteerId ?? "")));
+  }));
+
+  app.post("/api/assignments/:id/reassign", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
+    res.json(await reassignVolunteer(req.user!, param(req, "id"), String(req.body?.volunteerId ?? "")));
+  }));
+
+  app.post("/api/assignments/:id/respond", requireAuth, requireRole("volunteer"), wrap(async (req, res) => {
+    res.json(await respondToAssignment(req.user!, param(req, "id"), req.body?.accept === true));
+  }));
+
+  app.post("/api/incidents/:id/status", requireAuth, requireRole("coordinator"), wrap((req, res) => {
+    if (req.body?.status !== "resolved") throw new HttpError(400, "Only status=resolved can be set here");
+    res.json(resolveIncident(req.user!, param(req, "id")));
+  }));
+
+  app.get("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap((req, res) => res.json(volunteerProfile(req.user!.id))));
+  app.patch("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap((req, res) => {
+    res.json(setAvailability(req.user!, req.body?.availability));
   }));
 
   // ---- error handler ----

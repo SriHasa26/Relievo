@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { StatusBadge, SyntheticBadge, UrgencyBadge } from "@/components/badges";
+import { DispatchPanel } from "@/components/DispatchPanel";
 import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +76,12 @@ export default function IncidentDetail() {
       )}
 
       {isCoordinator && incident.status === "submitted" && <VerifyPanel data={data} onDone={load} />}
+
+      {isCoordinator && <DispatchPanel data={data} onChange={load} />}
+
+      {user.role === "volunteer" && data.assignments.length > 0 && (
+        <p className="text-sm text-slate-600">Your assignment: {data.assignments.at(-1)!.status}</p>
+      )}
 
       <Timeline events={events} />
     </div>

@@ -26,7 +26,8 @@ export function canSee(user: User, incident: Incident): boolean {
   if (user.role === "citizen") return incident.reporter_id === user.id;
   if (user.role === "volunteer") {
     return db.assignments.some(
-      (a) => a.incident_id === incident.id && a.volunteer_id === user.id && a.status !== "declined",
+      (a) => a.incident_id === incident.id && a.volunteer_id === user.id
+        && ["approved", "accepted", "completed"].includes(a.status), // declined / replaced volunteers lose access
     );
   }
   return false;
@@ -140,11 +141,13 @@ export function listIncidents(user: User) {
     .filter((i) => canSee(user, i))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map((i) => {
-      const active = activeAssignment(i.id);
+      // Coordinators see the active assignee; a volunteer sees their own assignment on the incident.
+      const a = user.role === "volunteer"
+        ? [...db.assignments].reverse().find((x) => x.incident_id === i.id && x.volunteer_id === user.id)
+        : user.role === "coordinator" ? activeAssignment(i.id) : undefined;
       return {
         ...i,
-        assignee: user.role === "citizen" || !active
-          ? null : { id: active.volunteer_id, name: nameOf(active.volunteer_id), status: active.status },
+        assignee: a ? { id: a.volunteer_id, name: nameOf(a.volunteer_id), status: a.status, assignment_id: a.id } : null,
       };
     });
 }
