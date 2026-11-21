@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Boxes, HeartHandshake, LayoutDashboard, ListChecks, LogOut, MessageSquare, PlusCircle, ShieldAlert, type LucideIcon } from "lucide-react";
+import { BarChart3, Boxes, HeartHandshake, LayoutDashboard, ListChecks, LogOut, MessageSquare, PlusCircle, Route, ShieldAlert, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { HOME, type Role, type User } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const NAV: Record<Role, Array<[string, string, LucideIcon]>> = {
   citizen: [["/citizen", "My requests", ListChecks], ["/citizen/new", "New request", PlusCircle]],
   volunteer: [["/volunteer", "My assignments", HeartHandshake], ["/messages", "Messages", MessageSquare]],
-  coordinator: [["/coordinator", "Command centre", LayoutDashboard], ["/messages", "Messages", MessageSquare], ["/impact", "Impact", BarChart3], ["/resources", "Resources", Boxes]],
+  coordinator: [["/coordinator", "Command centre", LayoutDashboard], ["/dispatch", "Dispatch board", Route], ["/messages", "Messages", MessageSquare], ["/impact", "Impact", BarChart3], ["/resources", "Resources", Boxes]],
   ngo: [["/resources", "Resources", Boxes]],
 };
 

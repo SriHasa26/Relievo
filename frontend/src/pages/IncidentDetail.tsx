@@ -9,6 +9,7 @@ import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
 import { AssignmentMap } from "@/components/MapView";
 import { SkeletonList, UrgencyGauge } from "@/components/kit";
+import { PriorityPanel } from "@/components/PriorityPanel";
 import { SosPanel } from "@/components/SosPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,9 +65,9 @@ export default function IncidentDetail() {
       )}
       <Link to={isCoordinator ? "/coordinator" : "/"} className="inline-flex items-center gap-1 text-sm font-medium text-brand"><ArrowLeft className="size-4" aria-hidden />Back</Link>
       <div className="flex flex-wrap items-center gap-2">
-        <UrgencyGauge urgency={incident.urgency} size={64} />
+        <UrgencyGauge urgency={data.priority?.level ?? incident.urgency} size={64} />
         <h1 className="text-2xl font-bold capitalize">{label(incident.category)} request</h1>
-        <UrgencyBadge urgency={incident.urgency} />
+        <UrgencyBadge urgency={data.priority?.level ?? incident.urgency} />
         <StatusBadge status={incident.status} />
         {incident.is_synthetic && <SyntheticBadge />}
         <span className="text-sm text-slate-500">{timeAgo(incident.created_at)}</span>
@@ -83,6 +84,8 @@ export default function IncidentDetail() {
       )}
 
       <SosPanel data={data} isOwner={user.role === "citizen"} onChange={load} />
+
+      {isCoordinator && <PriorityPanel data={data} canOverride onChange={load} />}
 
       {isCoordinator ? (
         <ReportVsAi data={data} />

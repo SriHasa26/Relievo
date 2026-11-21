@@ -33,6 +33,7 @@ function destination(from: { lat: number; lng: number }, km: number, bearingDeg:
 }
 
 const OPEN = ["submitted", "verified", "assigned", "in_progress"];
+const levelOf = (i: IncidentListItem) => i.priority?.level ?? i.urgency;
 /** Groups of 2+ open incidents within `km` of each other; each gets a centre and a coverage radius in metres. */
 export function clusters(incidents: IncidentListItem[], km = 1.5) {
   const open = incidents.filter((i) => OPEN.includes(i.status));
@@ -73,7 +74,7 @@ export function IncidentMap({
           <Tooltip direction="top">{c.count} open incidents in this area</Tooltip>
         </Circle>
       ))}
-      {incidents.filter((i) => i.urgency === "critical" && OPEN.includes(i.status)).map((i) => (
+      {incidents.filter((i) => levelOf(i) === "critical" && OPEN.includes(i.status)).map((i) => (
         <CircleMarker key={`ring-${i.id}`} center={[i.lat, i.lng]} radius={10} interactive={false}
           pathOptions={{ color: URGENCY_COLOR.critical, fill: false, weight: 3, className: "pulse-ring" }} />
       ))}
@@ -83,13 +84,13 @@ export function IncidentMap({
           <CircleMarker
             key={i.id} center={[i.lat, i.lng]} radius={i.id === selectedId ? 13 : done ? 6 : 10}
             pathOptions={{
-              color: i.id === selectedId ? "#ffffff" : URGENCY_COLOR[i.urgency], weight: i.id === selectedId ? 3 : 3,
-              fillColor: URGENCY_COLOR[i.urgency], fillOpacity: done ? 0.25 : 0.8, className: "coverage",
+              color: i.id === selectedId ? "#ffffff" : URGENCY_COLOR[levelOf(i)], weight: 3,
+              fillColor: URGENCY_COLOR[levelOf(i)], fillOpacity: done ? 0.25 : 0.8, className: "coverage",
             }}
             eventHandlers={{ click: () => onSelect?.(i.id) }}
           >
             <Popup>
-              <strong>{label(i.category)}</strong> · {i.urgency}<br />
+              <strong>{label(i.category)}</strong> · {levelOf(i)}<br />
               {label(i.status)}<br />
               {i.address_text}
             </Popup>

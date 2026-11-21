@@ -16,7 +16,9 @@ interface Props {
 
 /** One incident in a list. */
 export function IncidentRow({ incident: i, tilt, selected, fresh, changed, shake, onSelect }: Props) {
-  const emergency = (i.urgency === "critical" || i.is_sos === true) && (i.status === "submitted" || i.status === "verified");
+  const level = i.priority?.level ?? i.urgency;
+  const waiting = i.priority?.waiting_minutes ?? 0;
+  const emergency = (level === "critical" || i.is_sos === true) && (i.status === "submitted" || i.status === "verified");
   const row = (
     <Link to={`/incidents/${i.id}`} onMouseEnter={onSelect} onFocus={onSelect}
       className={cn("rr-card block p-3.5 transition-colors hover:border-[var(--brand)] focus-visible:border-[var(--brand)]",
@@ -24,8 +26,13 @@ export function IncidentRow({ incident: i, tilt, selected, fresh, changed, shake
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-display font-semibold capitalize">{label(i.category)}</span>
         {i.is_sos && i.sos_status !== "cancelled" && <span className="alert-tag">SOS</span>}
-        <UrgencyBadge urgency={i.urgency} />
+        <UrgencyBadge urgency={level} />
         <StatusBadge status={i.status} />
+        {waiting > 0 && (
+          <span className={cn("pill", waiting >= 30 ? "tone-amber" : "tone-gray")} title={i.priority?.escalated ? "Escalated: waiting too long" : "Waiting for a volunteer"}>
+            {waiting >= 60 ? `${Math.floor(waiting / 60)} h ${waiting % 60} min` : `${waiting} min`} waiting{i.priority?.escalated ? " ↑" : ""}
+          </span>
+        )}
         {i.possible_duplicate_of && <span className="text-xs text-amber-800">possible duplicate</span>}
         {i.is_synthetic && <SyntheticBadge />}
         <span className="ml-auto text-xs text-slate-500">{timeAgo(i.created_at)}</span>
@@ -39,7 +46,7 @@ export function IncidentRow({ incident: i, tilt, selected, fresh, changed, shake
             {i.assignee && ` · ${i.assignee.name} (${i.assignee.status})`}
           </p>
         </div>
-        {tilt && <div className="hidden sm:block"><UrgencyGauge urgency={i.urgency} size={52} /></div>}
+        {tilt && <div className="hidden sm:block"><UrgencyGauge urgency={level} size={52} /></div>}
       </div>
     </Link>
   );

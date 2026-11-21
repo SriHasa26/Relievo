@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout, RequireRole } from "@/components/Layout";
 import CommandCentre from "@/pages/CommandCentre";
+import DispatchBoard from "@/pages/DispatchBoard";
 import Impact from "@/pages/Impact";
 import IncidentDetail from "@/pages/IncidentDetail";
 import IncidentList from "@/pages/IncidentList";
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/incidents/:id" element={<IncidentDetail />} />
         <Route path="/volunteer" element={<RequireRole roles={["volunteer"]}><VolunteerDashboard /></RequireRole>} />
         <Route path="/coordinator" element={<RequireRole roles={["coordinator"]}><CommandCentre /></RequireRole>} />
+        <Route path="/dispatch" element={<RequireRole roles={["coordinator"]}><DispatchBoard /></RequireRole>} />
         <Route path="/impact" element={<RequireRole roles={["coordinator"]}><Impact /></RequireRole>} />
         <Route path="/messages" element={<RequireRole roles={["coordinator", "volunteer"]}><Messages /></RequireRole>} />
         <Route path="/resources" element={<RequireRole roles={["coordinator", "ngo"]}><Resources /></RequireRole>} />

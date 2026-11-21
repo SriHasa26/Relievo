@@ -170,7 +170,7 @@ export function LoginSummary() {
   const { summary, summaryOpen, closeSummary, popup } = useNotifications();
   const navigate = useNavigate();
   if (!summaryOpen || !summary || popup) return null; // alerts first; the summary waits behind them
-  const go = () => { closeSummary(); navigate("/coordinator"); };
+  const go = () => { closeSummary(); navigate("/dispatch"); };
   return (
     <div className="fixed inset-0 z-[2900] grid place-items-center p-4" style={{ background: "rgb(0 0 0 / 0.5)" }}>
       <div role="dialog" aria-modal="true" aria-labelledby="summary-title" className="glass w-full max-w-md rounded-2xl p-5">

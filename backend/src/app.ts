@@ -10,6 +10,7 @@ import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
 } from "./services/dispatch";
 import { chatContacts, chatToken, hubAccess, roomAccess } from "./services/rooms";
+import { approveAll, dispatchBoard, setPriorityOverride } from "./services/board";
 import { attachSosAudio, cancelSos, getSosAudio, sosInfo, startSos } from "./services/sos";
 import { computeMetrics } from "./services/metrics";
 import { allocateResource, listResources } from "./services/resources";
@@ -127,6 +128,16 @@ export function createApp() {
   app.post("/api/incidents/:id/status", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
     if (req.body?.status !== "resolved") throw new HttpError(400, "Only status=resolved can be set here");
     res.json(await resolveIncident(req.user!, param(req, "id")));
+  }));
+
+  // ---- dispatch board (priority order, greedy volunteer suggestions; every assignment still needs a coordinator) ----
+  app.get("/api/dispatch/board", requireAuth, requireRole("coordinator"), wrap(async (_req, res) => res.json(await dispatchBoard())));
+  app.post("/api/dispatch/approve-all", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
+    res.json(await approveAll(req.user!, Array.isArray(req.body?.pairs) ? req.body.pairs : []));
+  }));
+  app.post("/api/incidents/:id/priority", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
+    const level = req.body?.level === null || req.body?.level === "auto" ? null : req.body?.level;
+    res.json(await setPriorityOverride(req.user!, param(req, "id"), level));
   }));
 
   app.get("/api/volunteers/me", requireAuth, requireRole("volunteer"), wrap(async (req, res) => res.json(await volunteerProfile(req.user!.id))));

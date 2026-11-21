@@ -17,6 +17,12 @@ const TEXT: Record<string, string> = {
   room_created: "Incident chat room created",
   resource_allocated: "Relief resource allocated",
   resolved: "Marked resolved",
+  priority_overridden: "Coordinator changed the priority",
+  sos_started: "EMERGENCY SOS started",
+  sos_audio_added: "SOS recording and transcript received",
+  sos_cancelled: "SOS cancelled: citizen is safe",
+  escalated: "Escalated: waiting too long without a volunteer",
+  citizen_room_created: "Chat with the citizen opened",
 };
 
 export function Timeline({ events }: { events: IncidentEvent[] }) {

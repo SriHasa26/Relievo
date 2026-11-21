@@ -9,7 +9,6 @@ import { api } from "@/lib/api";
 import type { IncidentListItem } from "@/lib/types";
 import { label } from "@/lib/utils";
 
-const URGENCY_RANK = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 const POLL_MS = 10_000;
 type Filter = "review" | "open" | "all";
 const fingerprint = (i: IncidentListItem) => `${i.status}|${i.urgency}|${i.assignee?.status ?? ""}`;
@@ -18,6 +17,7 @@ export default function CommandCentre() {
   const navigate = useNavigate();
   const [items, setItems] = useState<IncidentListItem[] | null>(null);
   const [filter, setFilter] = useState<Filter>("review");
+  const [prio, setPrio] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
   const [selected, setSelected] = useState<string | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [changed, setChanged] = useState<Set<string>>(new Set());
@@ -58,13 +58,15 @@ export default function CommandCentre() {
       filter === "all" ? true
         : filter === "review" ? i.status === "submitted"
           : ["submitted", "verified", "assigned", "in_progress"].includes(i.status))
-    .sort((a, b) => URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency] || a.created_at.localeCompare(b.created_at));
+    .filter((i) => prio === "all" || i.priority.level === prio)
+    // priority score first (SOS and Critical are pinned at the top), then whoever has waited longer
+    .sort((a, b) => b.priority.score - a.priority.score || a.created_at.localeCompare(b.created_at));
 
   const tabs: Array<[Filter, string]> = [["review", "Needs review"], ["open", "All open"], ["all", "Everything"]];
   const needsReview = list.filter((i) => i.status === "submitted").length;
 
   // Emergency state: critical incidents that still wait for a human (not yet assigned).
-  const critical = list.filter((i) => i.urgency === "critical" && (i.status === "submitted" || i.status === "verified") && !dismissed.has(i.id));
+  const critical = list.filter((i) => i.priority.level === "critical" && (i.status === "submitted" || i.status === "verified") && !dismissed.has(i.id));
   const top = critical[0];
 
   return (
@@ -85,13 +87,17 @@ export default function CommandCentre() {
                 {text}{f === "review" && ` (${needsReview})`}
               </Button>
             ))}
+            <select aria-label="Filter by priority" value={prio} onChange={(e) => setPrio(e.target.value as typeof prio)} className="h-8 rounded-md border px-2 text-sm">
+              <option value="all">All priorities</option><option value="critical">Critical</option><option value="high">High</option>
+              <option value="medium">Medium</option><option value="low">Low</option>
+            </select>
           </div>
           <div className="stagger space-y-3">
             {items === null && [0, 1, 2].map((n) => <Skeleton key={n} className="h-24 rounded-2xl" />)}
             {items !== null && visible.length === 0 && <EmptyState icon={<Inbox className="size-6" />} title="Nothing in this view" hint="New citizen requests appear here, most urgent first." />}
             {visible.map((i) => (
               <IncidentRow key={i.id} incident={i} tilt selected={selected === i.id}
-                fresh={fresh.has(i.id)} changed={changed.has(i.id)} shake={fresh.has(i.id) && i.urgency === "critical"}
+                fresh={fresh.has(i.id)} changed={changed.has(i.id)} shake={fresh.has(i.id) && i.priority.level === "critical"}
                 onSelect={() => setSelected(i.id)} />
             ))}
           </div>
