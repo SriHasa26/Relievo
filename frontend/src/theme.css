@@ -181,7 +181,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 .pipe-card { position: absolute; inset: 0; margin: auto; will-change: transform, opacity; }
 .beam { position: relative; height: 4px; border-radius: 9999px; background: var(--border); overflow: hidden; }
 .beam > i { position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--p, 0)); background: linear-gradient(90deg, var(--led-teal), var(--led-ember)); box-shadow: 0 0 12px var(--led-ember); }
-.typewriter { display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom; border-right: 2px solid var(--brand); animation: typing-w 3.2s steps(46, end) both, caret 0.8s step-end infinite; max-width: 100%; }
+.typewriter { display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom; border-right: 2px solid var(--brand); animation: typing-w 3.2s steps(49, end) both, caret 0.8s step-end infinite; max-width: 100%; }
 .field-pop { animation: rise 0.5s var(--ease-out) both; animation-delay: var(--d, 0ms); }
 .bar-fill > i { display: block; height: 100%; border-radius: inherit; transform-origin: left; animation: bar-grow 1.1s var(--ease-out) both; animation-delay: var(--d, 0ms); }
 .swap-a { animation: swap-out 0.01s 1.6s forwards; }

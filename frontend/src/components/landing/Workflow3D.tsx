@@ -1,7 +1,7 @@
-// Section 3: the pipeline as a scroll-driven CSS 3D scene (perspective + translateZ + rotate, no WebGL).
-// Cards come forward as you scroll; a glowing beam rail shows progress. On touch, small screens and reduced motion it
+// Section 3: the pipeline as a CSS 3D scene (perspective + translateZ + rotate, no WebGL).
+// Cards flow forward automatically, one after the other (pauses on hover); a glowing beam rail shows progress. On touch, small screens and reduced motion it
 // becomes a plain vertical list of the same cards. The page scroll itself is never intercepted.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 import { useInView, useReveal, useSimpleMode } from "@/components/landing/hooks";
 
@@ -130,49 +130,16 @@ function SimpleStep({ i }: { i: number }) {
 
 export function Workflow3D() {
   const simple = useSimpleMode();
-  const section = useRef<HTMLElement>(null);
-  const cards = useRef<Array<HTMLDivElement | null>>([]);
-  const beam = useRef<HTMLDivElement>(null);
+  const [stageRef, inView] = useInView<HTMLDivElement>(0.3);
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
 
+  // The cards flow on their own, one after the other, while the section is on screen (pauses on hover / focus).
   useEffect(() => {
-    if (simple) return;
-    let raf = 0;
-    const frame = () => {
-      raf = 0;
-      const el = section.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const span = Math.max(1, r.height - window.innerHeight);
-      const p = Math.min(1, Math.max(0, -r.top / span));
-      const f = p * (N - 1);
-      cards.current.forEach((c, i) => {
-        if (!c) return;
-        const dz = i - f;
-        const z = dz >= 0 ? -dz * 280 : -dz * 320;
-        const x = dz * (dz >= 0 ? 120 : 170);
-        const op = dz < 0 ? Math.max(0, 1 + dz * 2.3) : Math.max(0, 1 - dz * 0.7);
-        c.style.transform = `translate3d(${x.toFixed(0)}px, ${(dz * -12).toFixed(0)}px, ${z.toFixed(0)}px) rotateY(${(dz * -4).toFixed(1)}deg)`;
-        c.style.opacity = op.toFixed(2);
-        c.style.pointerEvents = Math.abs(dz) < 0.5 ? "auto" : "none";
-        c.style.zIndex = String(100 - Math.round(Math.abs(dz) * 10));
-      });
-      beam.current?.style.setProperty("--p", p.toFixed(3));
-      setActive((a) => (a === Math.round(f) ? a : Math.round(f)));
-    };
-    const on = () => { if (!raf) raf = requestAnimationFrame(frame); };
-    frame();
-    window.addEventListener("scroll", on, { passive: true });
-    window.addEventListener("resize", on);
-    return () => { window.removeEventListener("scroll", on); window.removeEventListener("resize", on); if (raf) cancelAnimationFrame(raf); };
-  }, [simple]);
-
-  const jump = (i: number) => {
-    const el = section.current;
-    if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({ top: top + (i / (N - 1)) * (el.offsetHeight - window.innerHeight) + 2, behavior: "smooth" });
-  };
+    if (simple || !inView || paused) return;
+    const t = setTimeout(() => setActive((a) => (a + 1) % N), 5200);
+    return () => clearTimeout(t);
+  }, [simple, inView, paused, active]);
 
   const header = (
     <div className="mx-auto w-full max-w-6xl px-4">
@@ -187,7 +154,7 @@ export function Workflow3D() {
 
   if (simple) {
     return (
-      <section id="workflow" ref={section} className="land-section mesh">
+      <section id="workflow" className="land-section mesh">
         <div className="w-full py-16">
           {header}
           <div className="mx-auto mt-8 grid w-full max-w-6xl gap-4 px-4 sm:grid-cols-2">
@@ -199,24 +166,37 @@ export function Workflow3D() {
   }
 
   return (
-    <section id="workflow" ref={section} className="land-section mesh" style={{ height: `${100 + N * 70}vh`, alignItems: "flex-start" }}>
-      <div className="sticky top-[4.5rem] flex h-[calc(100vh-4.5rem)] w-full flex-col justify-center gap-6 overflow-hidden">
+    <section id="workflow" className="land-section mesh">
+      <div className="flex w-full flex-col justify-center gap-6 py-14">
         {header}
-        <div className="pipe-stage relative mx-auto h-[26rem] w-full max-w-6xl">
+        <div ref={stageRef} className="pipe-stage relative mx-auto h-[28rem] w-full max-w-6xl"
+          onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
           <div className="pipe-world absolute inset-0">
-            {STEPS.map((_, i) => (
-              <div key={i} ref={(el) => { cards.current[i] = el; }} className="pipe-card h-fit w-[min(30rem,88vw)]">
-                <div className="rr-card p-5" style={{ boxShadow: "var(--shadow-float)" }}><StepBody i={i} active={active === i} /></div>
-              </div>
-            ))}
+            {STEPS.map((_, i) => {
+              const dz = i - active;
+              const z = dz >= 0 ? -dz * 280 : -dz * 320;
+              const x = dz * (dz >= 0 ? 120 : 170);
+              const op = dz < 0 ? Math.max(0, 1 + dz * 2.3) : Math.max(0, 1 - dz * 0.7);
+              return (
+                <div key={i} className="pipe-card h-fit w-[min(30rem,88vw)]" aria-hidden={dz !== 0}
+                  style={{
+                    transform: `translate3d(${x}px, ${dz * -12}px, ${z}px) rotateY(${dz * -4}deg)`,
+                    opacity: op, zIndex: 100 - Math.abs(dz) * 10, pointerEvents: dz === 0 ? "auto" : "none",
+                    transition: "transform 1s var(--ease-out), opacity 0.8s ease",
+                  }}>
+                  <div className="rr-card p-5" style={{ boxShadow: "var(--shadow-float)" }}><StepBody i={i} active={active === i} /></div>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="mx-auto w-full max-w-4xl px-4">
-          <div ref={beam} className="beam" aria-hidden><i /></div>
+          <div className="beam" aria-hidden style={{ "--p": active / (N - 1) } as React.CSSProperties}><i /></div>
           <ol className="mt-3 flex justify-between gap-1">
             {STEPS.map((s, i) => (
               <li key={s.title}>
-                <button type="button" onClick={() => jump(i)} aria-label={`Go to step ${i + 1}: ${s.title}`} aria-current={active === i}
+                <button type="button" onClick={() => setActive(i)} aria-label={`Show step ${i + 1}: ${s.title}`} aria-current={active === i}
                   className="flex flex-col items-center gap-1 rounded-lg px-1 text-xs font-semibold">
                   <span className={`step-dot ${i <= active ? "done" : ""}`}>{i + 1}</span>
                   <span className={`hidden lg:block ${i === active ? "text-brand" : "muted"}`}>{s.title}</span>
