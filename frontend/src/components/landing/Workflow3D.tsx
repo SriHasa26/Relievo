@@ -151,7 +151,7 @@ export function Workflow3D() {
         const dz = i - f;
         const z = dz >= 0 ? -dz * 280 : -dz * 320;
         const x = dz * (dz >= 0 ? 120 : 170);
-        const op = dz < 0 ? Math.max(0, 1 + dz * 1.7) : Math.max(0, 1 - dz * 0.5);
+        const op = dz < 0 ? Math.max(0, 1 + dz * 2.3) : Math.max(0, 1 - dz * 0.7);
         c.style.transform = `translate3d(${x.toFixed(0)}px, ${(dz * -12).toFixed(0)}px, ${z.toFixed(0)}px) rotateY(${(dz * -4).toFixed(1)}deg)`;
         c.style.opacity = op.toFixed(2);
         c.style.pointerEvents = Math.abs(dz) < 0.5 ? "auto" : "none";

@@ -40,15 +40,15 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
-            {isMockChat && <span className="pill tone-amber" title="Chat is simulated, not Nexconn">MOCK CHAT</span>}
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+            {isMockChat && <span className="pill tone-amber whitespace-nowrap" title="Chat is simulated, not Nexconn">MOCK CHAT</span>}
             <ThemeToggle />
-            <label className="flex items-center gap-2 text-sm font-medium">
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium">
               Large text
               <NeuToggle checked={large} onChange={setLarge} label="Large text" />
             </label>
             <span className="hidden items-center gap-1.5 text-sm md:flex">{user.name} <Badge tone="ember">{user.role}</Badge></span>
-            <Button variant="outline" size="sm" onClick={signOut}><LogOut className="size-4" aria-hidden />Sign out</Button>
+            <Button variant="outline" size="sm" className="whitespace-nowrap" onClick={signOut}><LogOut className="size-4" aria-hidden />Sign out</Button>
           </div>
         </div>
       </header>
