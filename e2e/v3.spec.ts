@@ -166,7 +166,7 @@ test("Volunteer Hub: a coordinator broadcast reaches a volunteer, with an unread
   await coord.getByRole("link", { name: /Volunteer Hub/ }).click();
   await say(coord, /^Volunteer Hub/, "Hub broadcast: shelter kits arrive at 5 pm");
   // the volunteer is on another page: the Hub link shows an unread count
-  await expect(vol.getByLabel(/unread Hub messages/)).toBeVisible({ timeout: 15_000 });
+  await expect(vol.getByLabel(/unread Hub chats/)).toBeVisible({ timeout: 15_000 });
   await vol.getByRole("link", { name: /Volunteer Hub/ }).click();
   await expect(vol.getByText("Hub broadcast: shelter kits arrive at 5 pm")).toBeVisible({ timeout: 15_000 });
   await coord.close(); await vol.close();

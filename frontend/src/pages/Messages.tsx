@@ -20,15 +20,15 @@ export default function Messages({ initialTab = "direct" }: { initialTab?: Tab }
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-bold">Messages</h1>
-      <div role="tablist" aria-label="Message boxes" className="flex flex-wrap gap-2">
+      <div role="tablist" aria-label="Chat boxes" className="flex flex-wrap gap-2">
         <Button role="tab" aria-selected={tab === "direct"} size="sm" variant={tab === "direct" ? "default" : "outline"} onClick={() => setTab("direct")}>
-          Direct messages {tab !== "direct" && <CountBadge n={directUnread} label="direct messages" />}
+          Direct messages {tab !== "direct" && <CountBadge n={directUnread} label="direct chats" />}
         </Button>
         <Button role="tab" aria-selected={tab === "hub"} size="sm" variant={tab === "hub" ? "default" : "outline"} onClick={() => setTab("hub")}>
-          Volunteer Hub {tab !== "hub" && hub && <CountBadge n={chatUnread[`group:${hub.groupId}`] ?? 0} label="Hub messages" />}
+          Volunteer Hub {tab !== "hub" && hub && <CountBadge n={chatUnread[`group:${hub.groupId}`] ?? 0} label="Hub chats" />}
         </Button>
         <Button role="tab" aria-selected={tab === "rooms"} size="sm" variant={tab === "rooms" ? "default" : "outline"} onClick={() => setTab("rooms")}>
-          Incident rooms {tab !== "rooms" && <CountBadge n={roomUnread} label="room messages" />}
+          Incident rooms {tab !== "rooms" && <CountBadge n={roomUnread} label="room chats" />}
         </Button>
       </div>
 
@@ -41,7 +41,7 @@ export default function Messages({ initialTab = "direct" }: { initialTab?: Tab }
             <li key={r.groupId}>
               <button type="button" onClick={() => r.incident_id && navigate(`/incidents/${r.incident_id}`)}
                 className="rr-card flex w-full items-center gap-2 p-3 text-left text-sm hover:border-[var(--brand)]">
-                <span className="flex-1">{r.label}</span><CountBadge n={chatUnread[`group:${r.groupId}`] ?? 0} label="messages" />
+                <span className="flex-1">{r.label}</span><CountBadge n={chatUnread[`group:${r.groupId}`] ?? 0} label="chats" />
               </button>
             </li>
           ))}

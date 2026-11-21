@@ -59,7 +59,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const labels = useRef(new Map<string, string>()); // conversation key -> readable name
   const me = useRef<string | null>(null);
 
+  const polling = useRef(false); // never stack requests (a slow or offline connection would pile them up)
   const refresh = useCallback(async () => {
+    if (polling.current || navigator.onLine === false) return;
+    polling.current = true;
     try {
       const res = await api<{ items: AppNotification[]; unread: number; summary?: Summary }>("/api/notifications");
       setServer(res.items);
@@ -75,6 +78,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         if (user?.role === "coordinator" && res.summary && (res.summary.unassigned > 0 || res.summary.high_or_critical_open > 0 || fresh.length > 0)) setSummaryOpen(true);
       }
     } catch { /* offline, or the server is waking up: the next poll tries again */ }
+    finally { polling.current = false; }
   }, [user?.role]);
 
   // Poll while the tab is visible; fetch immediately on mount (login) and whenever the tab regains focus.

@@ -33,7 +33,7 @@ export function DirectMessages({ preferId }: { preferId?: string }) {
         {contacts.map((c) => (
           <Button key={c.id} size="sm" variant={c.id === selected ? "default" : "outline"} onClick={() => setSelected(c.id)}>
             {c.name}
-            {c.id !== selected && <CountBadge n={chatUnread[`direct:${c.id}`] ?? 0} label="messages" />}
+            {c.id !== selected && <CountBadge n={chatUnread[`direct:${c.id}`] ?? 0} label="chats" />}
           </Button>
         ))}
       </div>

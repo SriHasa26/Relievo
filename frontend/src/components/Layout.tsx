@@ -47,8 +47,8 @@ function Shell({ user }: { user: User }) {
                 className={({ isActive }) => cn("flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
                   isActive ? "bg-[var(--pill-ember-bg)] font-semibold text-[var(--pill-ember-fg)]" : "hover:bg-[var(--surface-2)]")}>
                 <Icon className="size-4" aria-hidden />{text}
-                {to === "/messages" && <CountBadge n={chatUnreadTotal} label="messages" />}
-                {to === "/hub" && hubId && <CountBadge n={chatUnread[`group:${hubId}`] ?? 0} label="Hub messages" />}
+                {to === "/messages" && <CountBadge n={chatUnreadTotal} label="chats" />}
+                {to === "/hub" && hubId && <CountBadge n={chatUnread[`group:${hubId}`] ?? 0} label="Hub chats" />}
               </NavLink>
             ))}
           </nav>
