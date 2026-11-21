@@ -20,7 +20,7 @@ function assertProductionConfig() {
 assertProductionConfig();
 
 createApp().listen(config.port, () => {
-  console.log(`ReliefRelay API listening on port ${config.port}  (MOCK_CHAT=${config.mockChat} MOCK_AI=${config.mockAi} MOCK_DB=${config.mockDb})`);
+  console.log(`Relievo API listening on port ${config.port}  (MOCK_CHAT=${config.mockChat} MOCK_AI=${config.mockAi} MOCK_DB=${config.mockDb})`);
   if (config.mockChat || config.mockAi || config.mockDb) console.log("MOCK flags are on. Set MOCK_CHAT, MOCK_AI and MOCK_DB to false for the demo.");
 
   // Chat set-up runs in the background so a slow Nexconn never delays or blocks the server from starting.

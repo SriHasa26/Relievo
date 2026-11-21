@@ -1,4 +1,4 @@
-# Deploying ReliefRelay: Render (backend) + Vercel (frontend)
+# Deploying Relievo: Render (backend) + Vercel (frontend)
 
 Order matters: **Supabase ready → Render (backend) → Vercel (frontend) → set `FRONTEND_URL` on Render → smoke test.**
 All demo data is synthetic. Never paste real keys into git, chat or screenshots.

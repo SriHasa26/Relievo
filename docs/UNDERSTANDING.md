@@ -1,4 +1,4 @@
-# ReliefRelay: Understanding and Build Plan
+# Relievo: Understanding and Build Plan
 
 Hackathon: Nexconn Build Challenge 2026, Humanitarian & Social Good. Deadline 22 Nov 2026.
 Source: `docs/ReliefRelay_Blueprint.pdf` (all pages, including the six-module page). No docs sites were consulted. Every Nexconn call is behind an adapter and marked as a placeholder.
@@ -7,7 +7,7 @@ Source: `docs/ReliefRelay_Blueprint.pdf` (all pages, including the six-module pa
 
 ## 1. Summary
 
-ReliefRelay is a disaster-response coordination app. A citizen types (or dictates) an emergency request. Gemini turns the free text into structured fields (category, people affected, needs, vulnerable persons, urgency) and the original text stays beside it. A human coordinator verifies or rejects the incident. The system then ranks volunteers with a transparent formula (distance, skills, availability, capacity). Busy or unverified volunteers are never eligible. The coordinator approves an assignment. Approval opens an incident chat room, built on the Nexconn Chat SDK, for the coordinator and the assigned volunteer, plus private coordinator-volunteer direct messages. Every step is written to an `incident_events` table. That table drives the status timeline and an impact dashboard. AI only suggests; a person verifies and approves.
+Relievo is a disaster-response coordination app. A citizen types (or dictates) an emergency request. Gemini turns the free text into structured fields (category, people affected, needs, vulnerable persons, urgency) and the original text stays beside it. A human coordinator verifies or rejects the incident. The system then ranks volunteers with a transparent formula (distance, skills, availability, capacity). Busy or unverified volunteers are never eligible. The coordinator approves an assignment. Approval opens an incident chat room, built on the Nexconn Chat SDK, for the coordinator and the assigned volunteer, plus private coordinator-volunteer direct messages. Every step is written to an `incident_events` table. That table drives the status timeline and an impact dashboard. AI only suggests; a person verifies and approves.
 
 ## 2. Happy path (10 steps; **[NX]** = uses Nexconn)
 

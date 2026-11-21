@@ -1,4 +1,4 @@
-# ReliefRelay
+# Relievo
 
 AI-assisted disaster-response coordination. Citizens report, a coordinator verifies and approves explainable
 volunteer matches, and responders talk in incident rooms built on the Nexconn Chat SDK.
@@ -7,6 +7,20 @@ Plan: [docs/UNDERSTANDING.md](docs/UNDERSTANDING.md) · Rules: [CLAUDE.md](CLAUD
 
 > AI is decision support. A human coordinator verifies every incident and approves every assignment.
 > All demo data is synthetic and labelled so.
+
+## Evaluator access (synthetic demo accounts)
+
+The landing page has an **Evaluator access** panel (also in the nav) with one account per role, copy buttons and one-click sign-in.
+All four share the password `demo1234`. They hold synthetic sample data only.
+
+| Role | Email |
+|---|---|
+| Citizen | `citizen1@demo.reliefrelay.test` |
+| Volunteer | `volunteer14@demo.reliefrelay.test` |
+| Coordinator | `coordinator21@demo.reliefrelay.test` |
+| NGO | `ngo31@demo.reliefrelay.test` |
+
+Check sign-in on any deployment: `BASE_URL=https://<your-vercel-url> node e2e/signin-check.mjs` (prints PASS/FAIL per role).
 
 ## Run (mock flags, no keys needed)
 

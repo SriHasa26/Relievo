@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HeartHandshake, Home, KeyRound, ShieldCheck, Users, type LucideIcon } from "lucide-react";
+import { EvaluatorAccess } from "@/components/landing/EvaluatorAccess";
 import { GlassCard } from "@/components/kit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,16 +14,25 @@ const ROLE_ORDER: Role[] = ["citizen", "volunteer", "coordinator", "ngo"];
 const ROLE_ICON: Record<Role, LucideIcon> = { citizen: Home, volunteer: HeartHandshake, coordinator: ShieldCheck, ngo: Users };
 
 export function SignInSection() {
-  const { signIn } = useAuth();
+  const { signIn, backend, wake } = useAuth();
   const navigate = useNavigate();
   const [demoUsers, setDemoUsers] = useState<DemoUser[]>([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  // Load the demo accounts once the API answers; retry a few times so one slow request never leaves the list empty.
   useEffect(() => {
-    api<DemoUser[]>("/api/auth/demo-users").then(setDemoUsers).catch(() => setDemoUsers([]));
-  }, []);
+    if (backend !== "ready") return;
+    let cancelled = false;
+    (async () => {
+      for (let i = 0; i < 5 && !cancelled; i++) {
+        try { const list = await api<DemoUser[]>("/api/auth/demo-users"); if (!cancelled) setDemoUsers(list); return; }
+        catch { await new Promise((r) => setTimeout(r, 2000)); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [backend]);
 
   const go = async (e: string, p: string) => {
     setError("");
@@ -41,10 +51,16 @@ export function SignInSection() {
         <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Sign in</h2>
         <p className="mt-2 muted">Pick a demo account, or use your own email. Each browser tab keeps its own login, so open two tabs to be two people.</p>
 
+        <div className="mt-6"><EvaluatorAccess /></div>
+
         <GlassCard className="mt-6 p-5 sm:p-6">
           <h3 className="font-display text-lg font-semibold">Demo role switcher</h3>
           <p className="mb-4 mt-1 text-sm muted">One click signs in as that account.</p>
-          {demoUsers.length === 0 && <p className="text-sm muted">Demo accounts unavailable (backend offline or demo logins switched off).</p>}
+          {demoUsers.length === 0 && backend === "checking" && <p className="text-sm text-brand" role="status">Waking up the server (free hosting sleeps when idle). This can take up to a minute…</p>}
+          {demoUsers.length === 0 && backend === "down" && (
+            <p className="flex flex-wrap items-center gap-2 text-sm muted">The server did not answer. <Button size="sm" variant="outline" onClick={wake}>Try again</Button></p>
+          )}
+          {demoUsers.length === 0 && backend === "ready" && <p className="text-sm muted">Demo accounts unavailable (demo logins are switched off on this server). Use the email form below.</p>}
           <div className="space-y-4">
             {ROLE_ORDER.map((role) => {
               const Icon = ROLE_ICON[role];

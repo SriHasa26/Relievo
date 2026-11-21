@@ -29,7 +29,7 @@ export function Layout() {
       <header className="glass sticky top-0 z-[1100] rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
           <Link to={HOME[user.role]} className="flex items-center gap-2 font-display text-lg font-bold" style={{ color: "var(--text)" }}>
-            <ShieldAlert className="size-6 text-brand" aria-hidden /> ReliefRelay
+            <ShieldAlert className="size-6 text-brand" aria-hidden /> Relievo
           </Link>
           <nav aria-label="Main" className="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
             {NAV[user.role].map(([to, text, Icon]) => (

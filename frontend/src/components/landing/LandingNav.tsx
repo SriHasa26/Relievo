@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useLargeText } from "@/lib/prefs";
 import { HOME } from "@/lib/types";
 
-const LINKS: Array<[string, string]> = [["#capabilities", "What it does"], ["#workflow", "How it works"], ["#rooms", "Live rooms"]];
+const LINKS: Array<[string, string]> = [["#capabilities", "What it does"], ["#workflow", "How it works"], ["#rooms", "Live rooms"], ["#evaluator", "Evaluator access"]];
 
 /** Sticky glass nav for the public page. Anchors scroll smoothly (CSS); nothing hijacks the scroll wheel. */
 export function LandingNav() {
@@ -16,7 +16,7 @@ export function LandingNav() {
     <header className="glass sticky top-0 z-[1100] rounded-none border-x-0 border-t-0">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
         <a href="#top" className="flex items-center gap-2 font-display text-lg font-bold">
-          <ShieldAlert className="size-6 text-brand" aria-hidden /> ReliefRelay
+          <ShieldAlert className="size-6 text-brand" aria-hidden /> Relievo
         </a>
         <nav aria-label="Sections" className="ml-4 hidden items-center gap-1 md:flex">
           {LINKS.map(([href, text]) => (

@@ -1,4 +1,4 @@
-# ReliefRelay
+# Relievo
 
 AI-assisted disaster-response coordination: citizen reports become structured incidents, a coordinator verifies them and approves explainable volunteer matches, and responders talk in incident rooms built on the Nexconn Chat SDK. Built for the Nexconn Build Challenge 2026 (Humanitarian & Social Good), deadline 22 Nov 2026. Plan and rationale: `docs/UNDERSTANDING.md`; source blueprint: `docs/ReliefRelay_Blueprint.pdf`.
 

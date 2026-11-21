@@ -157,7 +157,7 @@ export async function postSystemMessage(input: { groupId: string; text: string }
     return { messageId: `mock-msg-${group.systemMessages.length}` };
   }
   // The server API lets a non-member send into a group, but the sender must be a registered user.
-  await registerUser(SYSTEM_USER_ID, "ReliefRelay");
+  await registerUser(SYSTEM_USER_ID, "Relievo");
   await callNexconn("/v4/group-channel/message/send", {
     fromUserId: SYSTEM_USER_ID,
     toChannelIds: [nexId(input.groupId)],

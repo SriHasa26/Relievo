@@ -1,4 +1,4 @@
-/* ReliefRelay design tokens and component styles: the ONE theme file.
+/* Relievo design tokens and component styles: the ONE theme file.
    Palette: graphite (dark) / warm sand (light), ember orange for action, teal = verified, green = resolved,
    amber = warning, red = real emergencies only.
    Theme is a data-theme attribute on <html> ("light" | "dark"), set before first paint by index.html.
