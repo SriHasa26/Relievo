@@ -83,6 +83,9 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
     radial-gradient(44rem 28rem at 98% 4%, var(--mesh-b), transparent 60%),
     var(--bg);
 }
+/* role-specific accent in the background wash */
+.app-root[data-role="coordinator"] { --mesh-b: rgb(20 184 166 / 0.12); }
+.app-root[data-role="volunteer"] { --mesh-b: rgb(34 197 94 / 0.1); }
 .page-enter { animation: page-in var(--dur-slow) var(--ease-out) both; }
 
 /* ---------- surfaces ---------- */

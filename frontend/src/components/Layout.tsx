@@ -25,7 +25,7 @@ export function Layout() {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="app-root mesh">
+    <div className="app-root mesh" data-role={user.role}>
       <header className="glass sticky top-0 z-[1100] rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
           <Link to={HOME[user.role]} className="flex items-center gap-2 font-display text-lg font-bold" style={{ color: "var(--text)" }}>

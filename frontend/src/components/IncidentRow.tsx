@@ -2,13 +2,25 @@ import { Link } from "react-router-dom";
 import { StatusBadge, SyntheticBadge, UrgencyBadge } from "@/components/badges";
 import { TiltCard, UrgencyGauge } from "@/components/kit";
 import type { IncidentListItem } from "@/lib/types";
-import { label, timeAgo } from "@/lib/utils";
+import { cn, label, timeAgo } from "@/lib/utils";
 
-/** One incident in a list. `tilt` adds the 3D hover tilt (coordinator view only; off for touch and reduced motion). */
-export function IncidentRow({ incident: i, tilt }: { incident: IncidentListItem; tilt?: boolean }) {
+interface Props {
+  incident: IncidentListItem;
+  tilt?: boolean;            // 3D hover tilt (coordinator only; off for touch and reduced motion)
+  selected?: boolean;        // highlighted because the map is flying to it
+  fresh?: boolean;           // just arrived: drops in
+  changed?: boolean;         // status or urgency changed: brief ember flash
+  shake?: boolean;           // new critical card: gentle shake
+  onSelect?: () => void;     // hover or focus
+}
+
+/** One incident in a list. */
+export function IncidentRow({ incident: i, tilt, selected, fresh, changed, shake, onSelect }: Props) {
+  const emergency = i.urgency === "critical" && (i.status === "submitted" || i.status === "verified");
   const row = (
-    <Link to={`/incidents/${i.id}`}
-      className="rr-card block p-3.5 transition-colors hover:border-[var(--brand)] focus-visible:border-[var(--brand)]">
+    <Link to={`/incidents/${i.id}`} onMouseEnter={onSelect} onFocus={onSelect}
+      className={cn("rr-card block p-3.5 transition-colors hover:border-[var(--brand)] focus-visible:border-[var(--brand)]",
+        emergency && "card-critical", selected && "border-[var(--brand)]", fresh && "fresh-in", changed && "flash-change", shake && "shake-once")}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-display font-semibold capitalize">{label(i.category)}</span>
         <UrgencyBadge urgency={i.urgency} />

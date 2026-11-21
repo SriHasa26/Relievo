@@ -1,6 +1,6 @@
 // Reusable visual components. Styles live in src/theme.css; nothing here touches data or the API.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
-import { CircleAlert, Check, Moon, Sun } from "lucide-react";
+import { CircleAlert, Check, Moon, Sun, X } from "lucide-react";
 import { useTheme } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 
@@ -197,3 +197,25 @@ export const EmptyState = ({ icon, title, hint }: { icon: ReactNode; title: stri
 );
 
 export const Tick = () => <Check className="size-4" aria-hidden />;
+
+/* ---------- AlertBanner: emergency state for critical incidents (red edge glow + banner). Motion is switched off by CSS under reduced motion. ---------- */
+export function AlertBanner({ title, detail, more, onOpen, onDismiss }: {
+  title: string; detail: string; more?: number; onOpen: () => void; onDismiss: () => void;
+}) {
+  return (
+    <>
+      <div aria-hidden className="alert-glow" />
+      <div role="alert" className="alert-banner relative z-[1060] flex flex-wrap items-center gap-3 p-3 sm:p-4">
+        <span className="alert-tag">CRITICAL</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display font-bold">{title}</p>
+          <p className="line-clamp-2 text-sm muted">{detail}{more ? ` · +${more} more critical` : ""}</p>
+        </div>
+        <button type="button" onClick={onOpen} className="rr-btn btn-brand h-10 rounded-md px-4 text-sm font-semibold">Open incident</button>
+        <button type="button" onClick={onDismiss} aria-label="Dismiss alert" className="rr-btn grid size-10 place-items-center rounded-md border">
+          <X className="size-4" aria-hidden />
+        </button>
+      </div>
+    </>
+  );
+}

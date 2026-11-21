@@ -7,6 +7,7 @@ import { DispatchPanel } from "@/components/DispatchPanel";
 import { RoomChat } from "@/components/RoomChat";
 import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
+import { AssignmentMap } from "@/components/MapView";
 import { SkeletonList, UrgencyGauge } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,16 @@ export default function IncidentDetail() {
       {isCoordinator && incident.status === "submitted" && <VerifyPanel data={data} onDone={load} />}
 
       {isCoordinator && <DispatchPanel data={data} onChange={load} />}
+
+      {isCoordinator && activeAssignment?.score_breakdown && (
+        <Card>
+          <CardHeader><CardTitle>Dispatch map</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <AssignmentMap incident={incident} volunteerName={activeAssignment.volunteer_name} distanceKm={activeAssignment.score_breakdown.distance_km} />
+            <p className="text-xs text-slate-500">The line length is the real distance from the match score. Volunteer positions are not shown, so the direction is illustrative.</p>
+          </CardContent>
+        </Card>
+      )}
 
       {user.role === "volunteer" && data.assignments.length > 0 && (
         <p className="text-sm text-slate-600">Your assignment: {data.assignments.at(-1)!.status}</p>
