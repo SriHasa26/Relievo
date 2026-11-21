@@ -2,7 +2,7 @@
 // The AI never assigns anyone. Only a coordinator's approve/reassign call creates an assignment.
 import { getRepo, logEvent, newId } from "../store/repo";
 import { HttpError, activeAssignment, getIncident, isActive } from "./incidents";
-import { ensureRoomFor, removeVolunteerFromRoom } from "./rooms";
+import { ensureCitizenRoom, ensureRoomFor, removeVolunteerFromRoom } from "./rooms";
 import { rankVolunteers, type Candidate, type MatchResult } from "./matching";
 import { coordinators, notifyUsers, safely } from "./notifications";
 import { computePriority } from "./priority";
@@ -139,6 +139,8 @@ export async function respondToAssignment(volunteer: User, assignmentId: string,
     await repo.saveIncident(incident);
     await logEvent(incident.id, volunteer.id, "accepted");
     await tellCoordinators(incident, volunteer, true);
+    // the citizen gets their own chat with the volunteer who accepted (separate from the operations room)
+    await syncChat(incident.id, () => ensureCitizenRoom(incident, assignment.assigned_by, volunteer.id));
   } else {
     assignment.status = "declined";
     incident.status = "verified"; // back to the coordinator's matching list

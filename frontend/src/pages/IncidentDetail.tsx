@@ -10,6 +10,7 @@ import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
 import { AssignmentMap } from "@/components/MapView";
 import { SkeletonList, UrgencyGauge } from "@/components/kit";
 import { PriorityPanel } from "@/components/PriorityPanel";
+import { CitizenChat } from "@/components/RoomPanels";
 import { SosPanel } from "@/components/SosPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -136,6 +137,12 @@ export default function IncidentDetail() {
       )}
 
       <Timeline events={events} />
+
+      {/* below the timeline: the citizen channel with the volunteer who accepted (separate from the operations room) */}
+      {incident.status !== "rejected" && (user.role === "citizen" || isCoordinator
+        || (user.role === "volunteer" && data.assignments.some((a) => a.status === "accepted"))) && (
+        <CitizenChat incidentId={incident.id} ready={data.has_citizen_room === true} viewer={user.role as "citizen" | "volunteer" | "coordinator"} />
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import Login from "@/pages/Login";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
 import Resources from "@/pages/Resources";
 import Messages from "@/pages/Messages";
+import Hub from "@/pages/Hub";
 import NewRequest from "@/pages/NewRequest";
 import { useAuth } from "@/lib/auth";
 import { HOME } from "@/lib/types";
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/coordinator" element={<RequireRole roles={["coordinator"]}><CommandCentre /></RequireRole>} />
         <Route path="/dispatch" element={<RequireRole roles={["coordinator"]}><DispatchBoard /></RequireRole>} />
         <Route path="/impact" element={<RequireRole roles={["coordinator"]}><Impact /></RequireRole>} />
+        <Route path="/hub" element={<RequireRole roles={["coordinator", "volunteer"]}><Hub /></RequireRole>} />
         <Route path="/messages" element={<RequireRole roles={["coordinator", "volunteer"]}><Messages /></RequireRole>} />
         <Route path="/resources" element={<RequireRole roles={["coordinator", "ngo"]}><Resources /></RequireRole>} />
       </Route>

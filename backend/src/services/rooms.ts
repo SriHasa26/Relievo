@@ -35,8 +35,11 @@ export async function ensureRoomFor(incident: Incident, coordinatorId: string, v
 
 /** Remove a volunteer who declined or was replaced. */
 export async function removeVolunteerFromRoom(incidentId: string, volunteerId: string): Promise<void> {
-  const channel = await channelFor(incidentId);
-  if (channel) await nexconn.removeMember({ groupId: channel.nexconn_channel_id, userId: volunteerId });
+  const repo = await getRepo();
+  for (const kind of ["operations", "citizen"] as const) {
+    const channel = await repo.channel(incidentId, kind);
+    if (channel) await nexconn.removeMember({ groupId: channel.nexconn_channel_id, userId: volunteerId });
+  }
 }
 
 /**
@@ -97,11 +100,13 @@ export async function restoreRooms() {
   const [channels, incidents, assignments] = await Promise.all([repo.channels(), repo.incidents(), repo.assignments()]);
   for (const channel of channels) {
     const incident = incidents.find((i) => i.id === channel.incident_id);
-    const active = assignments.find((a) => a.incident_id === channel.incident_id && ["approved", "accepted", "completed"].includes(a.status));
+    const citizenRoom = channel.kind === "citizen";
+    const active = assignments.find((a) => a.incident_id === channel.incident_id
+      && (citizenRoom ? ["accepted", "completed"] : ["approved", "accepted", "completed"]).includes(a.status));
     if (!incident || !active) continue;
     await nexconn.createGroup({
-      groupId: channel.nexconn_channel_id, name: `Incident: ${incident.category}`,
-      ownerId: active.assigned_by, memberIds: [active.volunteer_id], mayExist: true,
+      groupId: channel.nexconn_channel_id, name: citizenRoom ? `Help: ${incident.category}` : `Incident: ${incident.category}`,
+      ownerId: active.assigned_by, memberIds: citizenRoom ? [active.volunteer_id, incident.reporter_id] : [active.volunteer_id], mayExist: true,
     });
   }
 }
@@ -146,4 +151,70 @@ export async function hubAccess(user: User) {
   await nexconn.addMember({ groupId: VOLUNTEER_HUB_ID, userId: user.id }); // idempotent
   const people = await hubPeople();
   return { groupId: VOLUNTEER_HUB_ID, participants: people.map((u) => ({ id: u.id, name: u.name, role: u.role })) };
+}
+
+
+// ---------- Citizen channel: a SEPARATE group per incident (citizen + accepted volunteer + coordinator) ----------
+// The operations room (coordinator + volunteer) is left exactly as it was. This one is created when a volunteer accepts.
+export async function ensureCitizenRoom(incident: Incident, coordinatorId: string, volunteerId: string): Promise<string> {
+  const repo = await getRepo();
+  let channel = await repo.channel(incident.id, "citizen");
+  if (!channel) {
+    const groupId = randomUUID();
+    await nexconn.createGroup({
+      groupId, name: `Help: ${incident.category} · ${incident.address_text || incident.id.slice(0, 8)}`,
+      ownerId: coordinatorId, memberIds: [incident.reporter_id, volunteerId],
+    });
+    channel = { incident_id: incident.id, nexconn_channel_id: groupId, kind: "citizen" };
+    await repo.addChannel(channel);
+    await logEvent(incident.id, null, "citizen_room_created");
+    const volunteer = (await repo.users()).find((u) => u.id === volunteerId);
+    await nexconn.postSystemMessage({
+      groupId, text: `${volunteer?.name ?? "A volunteer"} accepted your request and is on the way. You can message them here.`,
+    });
+  } else {
+    for (const userId of [coordinatorId, incident.reporter_id, volunteerId]) await nexconn.addMember({ groupId: channel.nexconn_channel_id, userId });
+  }
+  return channel.nexconn_channel_id;
+}
+
+/** Who may open the citizen channel: the reporting citizen, any coordinator, and the volunteer who accepted. Everyone else gets 403. */
+export async function citizenRoomAccess(user: User, incidentId: string) {
+  const repo = await getRepo();
+  const incident = await getIncident(incidentId);
+  const accepted = (await repo.assignments({ incident_id: incident.id })).filter((a) => a.status === "accepted");
+  const allowed = user.role === "coordinator" || (user.role === "citizen" && incident.reporter_id === user.id)
+    || (user.role === "volunteer" && accepted.some((a) => a.volunteer_id === user.id));
+  if (!allowed) throw new HttpError(403, "You are not a member of this chat");
+  const channel = await repo.channel(incident.id, "citizen");
+  if (!channel) throw new HttpError(404, "Waiting for a volunteer to accept. The chat opens as soon as one does.");
+  await nexconn.addMember({ groupId: channel.nexconn_channel_id, userId: user.id }); // idempotent
+  const users = await repo.users();
+  const people = users.filter((u) => u.id === incident.reporter_id || u.role === "coordinator" || accepted.some((a) => a.volunteer_id === u.id));
+  return { groupId: channel.nexconn_channel_id, participants: people.map((u) => ({ id: u.id, name: u.name, role: u.role })) };
+}
+
+/** Rooms the person may open (for labels, unread counts and the Messages page). */
+export async function listRooms(user: User) {
+  const repo = await getRepo();
+  const out: Array<{ kind: "hub" | "operations" | "citizen"; groupId: string; label: string; incident_id: string | null }> = [];
+  if (user.role === "coordinator" || user.role === "volunteer") out.push({ kind: "hub", groupId: VOLUNTEER_HUB_ID, label: "Volunteer Hub", incident_id: null });
+  const [channels, incidents, assignments] = await Promise.all([repo.channels(), repo.incidents(), repo.assignments()]);
+  for (const c of channels) {
+    const incident = incidents.find((i) => i.id === c.incident_id);
+    if (!incident) continue;
+    const kind = c.kind ?? "operations";
+    const mine = assignments.filter((a) => a.incident_id === incident.id && a.volunteer_id === user.id);
+    const ok = user.role === "coordinator"
+      || (kind === "operations" && user.role === "volunteer" && mine.some((a) => ["approved", "accepted"].includes(a.status)))
+      || (kind === "citizen" && user.role === "volunteer" && mine.some((a) => a.status === "accepted"))
+      || (kind === "citizen" && user.role === "citizen" && incident.reporter_id === user.id);
+    if (!ok) continue;
+    const place = incident.address_text || incident.id.slice(0, 8);
+    out.push({
+      kind, groupId: c.nexconn_channel_id, incident_id: incident.id,
+      label: kind === "citizen" ? (user.role === "citizen" ? `Your ${incident.category} request` : `Citizen chat: ${incident.category} · ${place}`) : `Incident room: ${incident.category} · ${place}`,
+    });
+  }
+  return out;
 }

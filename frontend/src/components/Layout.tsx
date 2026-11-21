@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Boxes, HeartHandshake, LayoutDashboard, ListChecks, LogOut, MessageSquare, PlusCircle, Route, ShieldAlert, type LucideIcon } from "lucide-react";
+import { BarChart3, Boxes, HeartHandshake, LayoutDashboard, ListChecks, LogOut, MessageSquare, PlusCircle, Route, ShieldAlert, Users, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { HOME, type Role, type User } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
 
 const NAV: Record<Role, Array<[string, string, LucideIcon]>> = {
   citizen: [["/citizen", "My requests", ListChecks], ["/citizen/new", "New request", PlusCircle]],
-  volunteer: [["/volunteer", "My assignments", HeartHandshake], ["/messages", "Messages", MessageSquare]],
-  coordinator: [["/coordinator", "Command centre", LayoutDashboard], ["/dispatch", "Dispatch board", Route], ["/messages", "Messages", MessageSquare], ["/impact", "Impact", BarChart3], ["/resources", "Resources", Boxes]],
+  volunteer: [["/volunteer", "My assignments", HeartHandshake], ["/hub", "Volunteer Hub", Users], ["/messages", "Messages", MessageSquare]],
+  coordinator: [["/coordinator", "Command centre", LayoutDashboard], ["/dispatch", "Dispatch board", Route], ["/hub", "Volunteer Hub", Users], ["/messages", "Messages", MessageSquare], ["/impact", "Impact", BarChart3], ["/resources", "Resources", Boxes]],
   ngo: [["/resources", "Resources", Boxes]],
 };
 
@@ -31,7 +31,8 @@ function Shell({ user }: { user: User }) {
   const { signOut } = useAuth();
   const [large, setLarge] = useLargeText();
   const { pathname } = useLocation();
-  const { chatUnreadTotal } = useNotifications();
+  const { chatUnread, chatUnreadTotal, rooms } = useNotifications();
+  const hubId = rooms.find((r) => r.kind === "hub")?.groupId;
 
   return (
     <div className="app-root mesh" data-role={user.role}>
@@ -47,6 +48,7 @@ function Shell({ user }: { user: User }) {
                   isActive ? "bg-[var(--pill-ember-bg)] font-semibold text-[var(--pill-ember-fg)]" : "hover:bg-[var(--surface-2)]")}>
                 <Icon className="size-4" aria-hidden />{text}
                 {to === "/messages" && <CountBadge n={chatUnreadTotal} label="messages" />}
+                {to === "/hub" && hubId && <CountBadge n={chatUnread[`group:${hubId}`] ?? 0} label="Hub messages" />}
               </NavLink>
             ))}
           </nav>

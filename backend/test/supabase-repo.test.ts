@@ -26,17 +26,20 @@ function fakeClient(tables: Record<string, Row[]>) {
     let orderBy: string | null = null;
     let single = false;
     const run = () => {
-      const match = (r: Row) => filters.every(([k, v]) => r[k] === v);
+      // like the real table: `kind` defaults to "operations", and the key of incident_channels is (incident_id, kind)
+      const val = (r: Row, k: string) => (k === "kind" && r[k] === undefined && table === "incident_channels" ? "operations" : r[k]);
+      const same = (a: Row, b: Row) => (table === "incident_channels" ? a.incident_id === b.incident_id && val(a, "kind") === val(b, "kind") : a[pk] === b[pk]);
+      const match = (r: Row) => filters.every(([k, v]) => val(r, k) === v);
       if (op === "insert") {
         for (const r of [payload].flat()) {
-          if (rows.some((x) => x[pk] === r[pk])) return { data: null, error: { message: `duplicate key ${table}` } };
+          if (rows.some((x) => same(x, r))) return { data: null, error: { message: `duplicate key ${table}` } };
           rows.push(structuredClone(r));
         }
         return { data: null, error: null };
       }
       if (op === "upsert") {
         for (const r of [payload].flat()) {
-          const i = rows.findIndex((x) => x[pk] === r[pk]);
+          const i = rows.findIndex((x) => same(x, r));
           if (i >= 0) rows[i] = structuredClone(r); else rows.push(structuredClone(r));
         }
         return { data: null, error: null };
@@ -108,7 +111,7 @@ describe("services on top of SupabaseRepo (fake client)", () => {
     expect(tables.assignments!.find((x) => x.id === a.id)!.status).toBe("completed");
 
     const actions = (await incidentEvents(coordinator, inc.id)).map((e) => e.action);
-    expect(actions).toEqual(["submitted", "ai_analyzed", "duplicate_flagged", "verified", "assigned", "room_created", "accepted", "resource_allocated", "resolved"]);
+    expect(actions).toEqual(["submitted", "ai_analyzed", "duplicate_flagged", "verified", "assigned", "room_created", "accepted", "citizen_room_created", "resource_allocated", "resolved"]);
   });
 
   it("normalises timestamps and exposes the same read models", async () => {

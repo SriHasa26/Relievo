@@ -7,7 +7,7 @@ import { ensureConnected } from "@/lib/chat";
 import { convKey, isViewing } from "@/lib/chatState";
 import { useAuth } from "@/lib/auth";
 import { onMessage, type ChatMessage } from "@/integrations/nexconnClient";
-import type { AppNotification } from "@/lib/types";
+import type { AppNotification, ChatRoom } from "@/lib/types";
 
 const POLL_MS = 5000;
 
@@ -19,6 +19,8 @@ interface State {
   /** Unread chat messages per conversation key ("group:<id>" or "direct:<userId>"). */
   chatUnread: Record<string, number>;
   chatUnreadTotal: number;
+  /** Rooms this person may open (Hub, incident rooms, citizen chats), for labels and unread counts. */
+  rooms: ChatRoom[];
   /** The alert currently shown as a modal (High / Critical), and how many more are queued behind it. */
   popup: AppNotification | null;
   queued: number;
@@ -43,6 +45,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [server, setServer] = useState<AppNotification[]>([]);
   const [chat, setChat] = useState<AppNotification[]>([]);
   const [chatUnread, setChatUnread] = useState<Record<string, number>>({});
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [queue, setQueue] = useState<AppNotification[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -92,11 +95,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       me.current = id;
       api<Array<{ id: string; name: string }>>("/api/chat/contacts").then((c) => c.forEach((x) => labels.current.set(`direct:${x.id}`, x.name))).catch(() => undefined);
-      api<Array<{ groupId: string; label: string }>>("/api/chat/rooms").then((r) => r.forEach((x) => labels.current.set(`group:${x.groupId}`, x.label))).catch(() => undefined);
+      api<ChatRoom[]>("/api/chat/rooms").then((r) => { setRooms(r); r.forEach((x) => labels.current.set(`group:${x.groupId}`, x.label)); }).catch(() => undefined);
       off = onMessage((m: ChatMessage) => {
         if (m.senderId === me.current || m.isSystem) return;
         const key = convKey(m.conversation);
         if (isViewing(key) && document.visibilityState === "visible") return;
+        if (!labels.current.has(key)) api<ChatRoom[]>("/api/chat/rooms").then((r) => { setRooms(r); r.forEach((x) => labels.current.set(`group:${x.groupId}`, x.label)); }).catch(() => undefined);
         const label = labels.current.get(key);
         setChatUnread((u) => ({ ...u, [key]: (u[key] ?? 0) + 1 }));
         const note: AppNotification = {
@@ -143,11 +147,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const items = [...server, ...chat].sort((a, b) => b.created_at.localeCompare(a.created_at));
     const chatTotal = Object.values(chatUnread).reduce((a, b) => a + b, 0);
     return {
-      items, unread: items.filter((n) => !n.read_at).length, chatUnread, chatUnreadTotal: chatTotal,
+      items, unread: items.filter((n) => !n.read_at).length, chatUnread, chatUnreadTotal: chatTotal, rooms,
       popup: queue[0] ?? null, queued: Math.max(0, queue.length - 1),
       summary, summaryOpen, closeSummary: () => setSummaryOpen(false), dismissPopup, markRead, markAllRead, clearChat, refresh,
     };
-  }, [server, chat, chatUnread, queue, summary, summaryOpen, dismissPopup, markRead, markAllRead, clearChat, refresh]);
+  }, [server, chat, chatUnread, rooms, queue, summary, summaryOpen, dismissPopup, markRead, markAllRead, clearChat, refresh]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

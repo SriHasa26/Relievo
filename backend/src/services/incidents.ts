@@ -206,6 +206,7 @@ export async function incidentDetail(user: User, incidentId: string) {
     reporter: isCoordinator ? { id: incident.reporter_id, name: nameOf(incident.reporter_id) } : null,
     analysis, assignments, allocations,
     has_room: (await repo.channel(incident.id)) !== null,
+    has_citizen_room: (await repo.channel(incident.id, "citizen")) !== null,
   };
 }
 

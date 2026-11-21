@@ -9,7 +9,7 @@ import { DEMO_PASSWORD } from "./store/seedData";
 import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
 } from "./services/dispatch";
-import { chatContacts, chatToken, hubAccess, roomAccess } from "./services/rooms";
+import { chatContacts, chatToken, citizenRoomAccess, hubAccess, listRooms, roomAccess } from "./services/rooms";
 import { approveAll, dispatchBoard, setPriorityOverride } from "./services/board";
 import { attachSosAudio, cancelSos, getSosAudio, sosInfo, startSos } from "./services/sos";
 import { computeMetrics } from "./services/metrics";
@@ -149,6 +149,8 @@ export function createApp() {
   // Token is always issued for the signed-in user only.
   app.post("/api/chat/token", requireAuth, rateLimit(LIMITS.chatToken), wrap(async (req, res) => res.json(await chatToken(req.user!))));
   app.get("/api/incidents/:id/room", requireAuth, wrap(async (req, res) => res.json(await roomAccess(req.user!, param(req, "id")))));
+  app.get("/api/incidents/:id/citizen-room", requireAuth, wrap(async (req, res) => res.json(await citizenRoomAccess(req.user!, param(req, "id")))));
+  app.get("/api/chat/rooms", requireAuth, wrap(async (req, res) => res.json(await listRooms(req.user!))));
   app.get("/api/chat/hub", requireAuth, wrap(async (req, res) => res.json(await hubAccess(req.user!))));
   app.get("/api/chat/contacts", requireAuth, wrap(async (req, res) => res.json(await chatContacts(req.user!))));
 

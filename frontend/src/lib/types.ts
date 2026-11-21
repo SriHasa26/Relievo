@@ -54,6 +54,7 @@ export interface IncidentDetailData {
   assignments: Assignment[];
   allocations: Array<{ id: string; resource_name: string; allocated_quantity: number }>;
   has_room: boolean;
+  has_citizen_room?: boolean;
 }
 export interface IncidentEvent {
   id: string; incident_id: string; actor_id: string | null; actor_name: string;
@@ -77,3 +78,5 @@ export interface AppNotification {
   priority: Urgency; incident_id: string | null; title: string; body: string;
   data: Record<string, unknown>; created_at: string; read_at: string | null;
 }
+
+export interface ChatRoom { kind: "hub" | "operations" | "citizen"; groupId: string; label: string; incident_id: string | null }
