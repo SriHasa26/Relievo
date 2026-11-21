@@ -60,7 +60,7 @@ export default function IncidentDetail() {
           <Button size="sm" variant="outline" onClick={() => void load()}>Retry</Button>
         </div>
       )}
-      <Link to={isCoordinator ? "/coordinator" : "/"} className="inline-flex items-center gap-1 text-sm font-medium text-blue-700"><ArrowLeft className="size-4" aria-hidden />Back</Link>
+      <Link to={isCoordinator ? "/coordinator" : "/"} className="inline-flex items-center gap-1 text-sm font-medium text-brand"><ArrowLeft className="size-4" aria-hidden />Back</Link>
       <div className="flex flex-wrap items-center gap-2">
         <UrgencyGauge urgency={incident.urgency} size={64} />
         <h1 className="text-2xl font-bold capitalize">{label(incident.category)} request</h1>

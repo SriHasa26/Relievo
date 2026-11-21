@@ -38,7 +38,7 @@ export default function CommandCentre() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="space-y-3">
-        <h1 className="flex items-center gap-2 text-2xl font-bold"><Radio className="size-6 text-blue-400" aria-hidden />Command centre</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold"><Radio className="size-6 text-brand" aria-hidden />Command centre</h1>
         <div className="flex flex-wrap gap-2">
           {tabs.map(([f, text]) => (
             <Button key={f} size="sm" variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}>

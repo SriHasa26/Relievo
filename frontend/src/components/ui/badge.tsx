@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 const badgeVariants = cva("pill !pl-2.5", {
   variants: {
     tone: {
-      gray: "tone-gray", blue: "tone-blue", green: "tone-green",
-      amber: "tone-amber", red: "tone-red", purple: "tone-purple",
+      gray: "tone-gray", teal: "tone-teal", green: "tone-green",
+      amber: "tone-amber", red: "tone-red", ember: "tone-ember",
     },
   },
   defaultVariants: { tone: "gray" },

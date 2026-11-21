@@ -13,13 +13,13 @@ export default function UiKit() {
   const [n, setN] = useState(42);
   const toast = useToast();
   return (
-    <div className="mission app-root hero min-h-screen space-y-8 p-6">
+    <div className="app-root mesh min-h-screen space-y-8 p-6">
       <h1 className="text-3xl font-bold">UI kit (dev only)</h1>
       <section className="space-y-2"><h2 className="font-semibold">StatusPill</h2>
         <div className="flex flex-wrap gap-2">
-          <StatusPill tone="red" glow pulse>critical</StatusPill><StatusPill tone="blue" glow>verified</StatusPill>
+          <StatusPill tone="red" glow pulse>critical</StatusPill><StatusPill tone="teal" glow>verified</StatusPill>
           <StatusPill tone="green" glow>resolved</StatusPill><StatusPill tone="amber">in progress</StatusPill>
-          <StatusPill tone="purple">assigned</StatusPill><StatusPill>submitted</StatusPill>
+          <StatusPill tone="ember">assigned</StatusPill><StatusPill>submitted</StatusPill>
         </div></section>
       <section className="space-y-2"><h2 className="font-semibold">UrgencyGauge</h2>
         <div className="flex gap-6">{(["low", "medium", "high", "critical"] as const).map((u) => <UrgencyGauge key={u} urgency={u} size={96} />)}</div></section>

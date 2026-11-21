@@ -48,7 +48,7 @@ export default function Login() {
   };
 
   return (
-    <div className="mission hero min-h-screen overflow-hidden" onPointerMove={onMove}>
+    <div className="app-root mesh min-h-screen overflow-hidden" onPointerMove={onMove}>
       <div ref={stage} className="parallax relative mx-auto max-w-4xl px-4 py-10 sm:py-16">
         <div aria-hidden className="layer pointer-events-none absolute -left-10 top-4 size-56 rounded-full bg-blue-500/30 blur-3xl" data-depth="40" />
         <div aria-hidden className="layer pointer-events-none absolute -right-6 top-40 size-64 rounded-full bg-violet-500/25 blur-3xl" data-depth="70" />
@@ -60,7 +60,7 @@ export default function Login() {
         </div>
 
         <div className="layer relative space-y-2" data-depth="20">
-          <p className="flex items-center gap-2 font-display text-lg font-bold"><ShieldAlert className="size-7 text-blue-400" aria-hidden /> ReliefRelay</p>
+          <p className="flex items-center gap-2 font-display text-lg font-bold"><ShieldAlert className="size-7 text-brand" aria-hidden /> ReliefRelay</p>
           <h1 className="font-display text-3xl font-bold leading-tight sm:text-5xl">From emergency signals to coordinated action.</h1>
           <p className="text-slate-300" style={{ color: "var(--muted)" }}>AI suggests. A human coordinator verifies and approves every assignment.</p>
           <p className="text-xs" style={{ color: "#fcd34d" }}>All accounts and incidents below are synthetic demo data.</p>

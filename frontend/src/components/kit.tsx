@@ -1,6 +1,7 @@
 // Reusable visual components. Styles live in src/theme.css; nothing here touches data or the API.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
-import { CircleAlert, Check } from "lucide-react";
+import { CircleAlert, Check, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 
 /* ---------- motion preference ---------- */
@@ -66,7 +67,7 @@ export function TiltCard({ children, className, max = 5 }: { children: ReactNode
 }
 
 /* ---------- StatusPill: LED + label. Tone decides colour; `glow` makes the LED shine (critical) ---------- */
-export type Tone = "gray" | "blue" | "green" | "amber" | "red" | "purple";
+export type Tone = "gray" | "teal" | "green" | "amber" | "red" | "ember";
 export function StatusPill({ tone = "gray", glow, pulse, children, className }: {
   tone?: Tone; glow?: boolean; pulse?: boolean; children: ReactNode; className?: string;
 }) {
@@ -80,7 +81,7 @@ export function StatusPill({ tone = "gray", glow, pulse, children, className }: 
 
 /* ---------- UrgencyGauge: half-circle dial, needle on low / medium / high / critical ---------- */
 const LEVELS = ["low", "medium", "high", "critical"] as const;
-const GAUGE_COLORS = ["#64748b", "#3b82f6", "#f59e0b", "#ef4444"];
+const GAUGE_COLORS = ["#9a9fa6", "#14b8a6", "#f5a524", "#ef4444"];
 export function UrgencyGauge({ urgency, size = 72 }: { urgency: (typeof LEVELS)[number]; size?: number }) {
   const idx = LEVELS.indexOf(urgency);
   const angle = -80 + idx * (160 / 3); // needle sweep -80deg .. +80deg
@@ -125,6 +126,18 @@ export function AnimatedNumber({ value, suffix = "", duration = 800 }: { value: 
     return () => { cancelAnimationFrame(raf); shown.current = value; el.classList.remove("count--anim"); };
   }, [value, suffix, duration]);
   return <span ref={ref} data-live={`0${suffix}`}>{value}{suffix}</span>;
+}
+
+/* ---------- ThemeToggle: light / dark (system default, choice remembered) ---------- */
+export function ThemeToggle({ className }: { className?: string }) {
+  const [theme, setTheme] = useTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  return (
+    <button type="button" className={cn("theme-toggle", className)} aria-label={`Switch to ${next} theme`} title={`Switch to ${next} theme`}
+      onClick={() => setTheme(next)}>
+      {theme === "dark" ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
+    </button>
+  );
 }
 
 /* ---------- Skeleton ---------- */

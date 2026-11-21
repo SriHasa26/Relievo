@@ -29,7 +29,7 @@ export function ReportVsAi({ data }: { data: IncidentDetailData }) {
         <CardHeader>
           <CardTitle>
             AI suggestion <Badge tone="amber">needs human verification</Badge>
-            {analysis && <Badge tone="blue">{AI_LABEL[analysis.source]}</Badge>}
+            {analysis && <Badge tone="teal">{AI_LABEL[analysis.source]}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">

@@ -52,7 +52,7 @@ export default function Resources() {
 
   return (
     <div className="space-y-4">
-      <h1 className="flex items-center gap-2 text-2xl font-bold"><Boxes className="size-6 text-blue-400" aria-hidden />Relief resources</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-bold"><Boxes className="size-6 text-brand" aria-hidden />Relief resources</h1>
       <p className="text-xs text-amber-800">Synthetic demo stock from a synthetic NGO.</p>
 
       {isCoordinator && (
@@ -69,7 +69,7 @@ export default function Resources() {
           </select>
         </label>
       )}
-      {message && <p role="status" className="text-sm text-blue-800">{message}</p>}
+      {message && <p role="status" className="text-sm text-brand">{message}</p>}
 
       <div className="stagger grid gap-3 md:grid-cols-2">
         {rows.length === 0 && <div className="md:col-span-2"><EmptyState icon={<Package className="size-6" />} title="No resources listed" /></div>}

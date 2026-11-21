@@ -91,7 +91,7 @@ export function ChatPanel({
                 <div className={cn("bubble max-w-[80%] rounded-2xl px-3 py-1.5 text-sm", mine ? "bubble-mine rounded-br-sm" : "bubble-theirs rounded-bl-sm")}>
                   {!mine && <div className="text-xs font-semibold text-slate-500">{names[m.senderId] ?? "Someone"}</div>}
                   {m.text}
-                  <div className={cn("text-[0.65rem]", mine ? "text-blue-100" : "text-slate-500")}>
+                  <div className={cn("text-[0.65rem]", mine ? "opacity-80" : "text-slate-500")}>
                     {new Date(m.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>

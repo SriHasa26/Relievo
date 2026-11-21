@@ -83,7 +83,7 @@ export default function VolunteerDashboard() {
       {rest.length > 0 && <h2 className="font-display text-lg font-semibold">Current and past</h2>}
       <div className="stagger space-y-3">
         {rest.map((i) => (
-          <Link key={i.id} to={`/incidents/${i.id}`} className="rr-card block p-3.5 transition-colors hover:border-blue-400">
+          <Link key={i.id} to={`/incidents/${i.id}`} className="rr-card block p-3.5 transition-colors hover:border-[var(--brand)]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-display font-semibold capitalize">{label(i.category)}</span>
               <UrgencyBadge urgency={i.urgency} />

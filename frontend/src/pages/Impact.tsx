@@ -51,7 +51,7 @@ export default function Impact() {
 
   return (
     <div className="space-y-4">
-      <h1 className="flex items-center gap-2 text-2xl font-bold"><BarChart3 className="size-6 text-blue-400" aria-hidden />Impact dashboard</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-bold"><BarChart3 className="size-6 text-brand" aria-hidden />Impact dashboard</h1>
       {m.synthetic && (
         <p className="rounded bg-amber-50 p-2 text-sm text-amber-900">
           All figures are computed from <b>synthetic demo data</b> and the incident event log. They are not real-world results.
@@ -94,7 +94,7 @@ export default function Impact() {
               <p className="flex items-center gap-2 text-sm text-slate-600"><CircleCheck className="size-4 text-green-500" aria-hidden />None. Every verified incident has a volunteer.</p>
             )}
             {m.unassigned_incidents.map((u) => (
-              <Link key={u.id} to={`/incidents/${u.id}`} className="flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors hover:border-blue-400">
+              <Link key={u.id} to={`/incidents/${u.id}`} className="flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors hover:border-[var(--brand)]">
                 <span className="capitalize">{u.category}</span>
                 <Badge tone={u.urgency === "critical" ? "red" : "amber"}>{u.urgency}</Badge>
                 <span className={`ml-auto font-semibold ${u.waiting_minutes > 30 ? "text-red-700" : "text-slate-500"}`}>waiting {u.waiting_minutes} min</span>

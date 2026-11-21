@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { HOME, type Role } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NeuToggle, SkeletonList } from "@/components/kit";
+import { NeuToggle, SkeletonList, ThemeToggle } from "@/components/kit";
 import { isMockChat } from "@/integrations/nexconnClient";
 import { useLargeText } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
@@ -21,37 +21,33 @@ export function Layout() {
   const { user, loading, signOut } = useAuth();
   const [large, setLarge] = useLargeText();
   const { pathname } = useLocation();
-  if (loading) return <div className="calm app-root p-6"><SkeletonList rows={3} /></div>;
+  if (loading) return <div className="app-root p-6"><SkeletonList rows={3} /></div>;
   if (!user) return <Navigate to="/login" replace />;
-  // Coordinators get the dark mission-control look; citizens, volunteers and NGOs the calm light one.
-  const theme = user.role === "coordinator" ? "mission" : "calm";
 
   return (
-    <div className={cn("app-root", theme)}>
-      <div className="bg-amber-100 px-4 py-1 text-center text-xs text-amber-900">
-        SYNTHETIC DEMO DATA. Not real emergencies.
-        {isMockChat && " MOCK CHAT: messages are simulated, not Nexconn."}
-      </div>
+    <div className="app-root mesh">
       <header className="glass sticky top-0 z-[1100] rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
           <Link to={HOME[user.role]} className="flex items-center gap-2 font-display text-lg font-bold" style={{ color: "var(--text)" }}>
-            <ShieldAlert className="size-6 text-blue-600" aria-hidden /> ReliefRelay
+            <ShieldAlert className="size-6 text-brand" aria-hidden /> ReliefRelay
           </Link>
           <nav aria-label="Main" className="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
             {NAV[user.role].map(([to, text, Icon]) => (
               <NavLink key={to} to={to} end
                 className={({ isActive }) => cn("flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
-                  isActive ? "bg-blue-100 font-semibold text-blue-900" : "hover:bg-slate-100")}>
+                  isActive ? "bg-[var(--pill-ember-bg)] font-semibold text-[var(--pill-ember-fg)]" : "hover:bg-[var(--surface-2)]")}>
                 <Icon className="size-4" aria-hidden />{text}
               </NavLink>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            {isMockChat && <span className="pill tone-amber" title="Chat is simulated, not Nexconn">MOCK CHAT</span>}
+            <ThemeToggle />
             <label className="flex items-center gap-2 text-sm font-medium">
               Large text
               <NeuToggle checked={large} onChange={setLarge} label="Large text" />
             </label>
-            <span className="hidden items-center gap-1.5 text-sm md:flex">{user.name} <Badge tone="blue">{user.role}</Badge></span>
+            <span className="hidden items-center gap-1.5 text-sm md:flex">{user.name} <Badge tone="ember">{user.role}</Badge></span>
             <Button variant="outline" size="sm" onClick={signOut}><LogOut className="size-4" aria-hidden />Sign out</Button>
           </div>
         </div>

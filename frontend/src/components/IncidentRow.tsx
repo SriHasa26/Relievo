@@ -8,7 +8,7 @@ import { label, timeAgo } from "@/lib/utils";
 export function IncidentRow({ incident: i, tilt }: { incident: IncidentListItem; tilt?: boolean }) {
   const row = (
     <Link to={`/incidents/${i.id}`}
-      className="rr-card block p-3.5 transition-colors hover:border-blue-400 focus-visible:border-blue-400">
+      className="rr-card block p-3.5 transition-colors hover:border-[var(--brand)] focus-visible:border-[var(--brand)]">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-display font-semibold capitalize">{label(i.category)}</span>
         <UrgencyBadge urgency={i.urgency} />
