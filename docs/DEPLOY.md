@@ -117,3 +117,5 @@ If something fails: Render → Logs (backend) and the browser console (frontend)
 2. From your computer: `npm run verify:schema -w backend` should print "Migration 0003 is applied."
 3. Deploy backend (Render) and frontend (Vercel) as usual. Until step 1 is done the existing features keep working; notifications, SOS and the citizen chat need the migration.
 4. Before recording or submitting: `npm run reset:demo -w backend` puts the demo back to the seed data.
+
+`TRUST_PROXY` (optional, default `1`): how many reverse proxies sit in front of the API. Render's load balancer is one hop, so the rate limiter reads the real client IP from `X-Forwarded-For`. If a CDN is ever added in front, raise it.

@@ -6,6 +6,7 @@
 // The SOS never waits for speech recognition, the microphone or the upload.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleCheck, Loader2, MapPin, Mic, ShieldCheck, Siren, Square, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -44,7 +45,8 @@ export function SosButton({ variant = "nav" }: { variant?: "nav" | "big" }) {
           variant === "big" ? "h-16 w-full rounded-2xl px-6 text-xl sm:w-auto" : "h-10 rounded-lg px-3 text-xs sm:text-sm")}>
         <Siren className={variant === "big" ? "size-6" : "size-4"} aria-hidden />Emergency SOS
       </button>
-      {open && <SosFlow onClose={() => setOpen(false)} />}
+      {/* a portal: the nav button lives inside the blurred header, which would otherwise trap this fixed full-screen layer */}
+      {open && createPortal(<SosFlow onClose={() => setOpen(false)} />, document.body)}
     </>
   );
 }

@@ -34,6 +34,12 @@ Check sign-in on any deployment: `BASE_URL=https://<your-vercel-url> node e2e/si
 | **Citizen chat**: a separate Nexconn group per incident (citizen + accepted volunteer + coordinator), opens when a volunteer accepts | citizen, volunteer, coordinator | below the status timeline |
 | **Volunteer Hub**: one persistent group with all volunteers and coordinators | volunteer, coordinator | nav "Volunteer Hub", Messages tab |
 
+**Good to know**
+- **First load can take about a minute.** The free Render server sleeps when idle; the landing page says "Waking up the server" and sign-in
+  works as soon as it answers. Open the site (or `/health` on the API) a few minutes before a demo.
+- **Voice input works in Chrome and Edge** (HTTPS or localhost). Other browsers get a clear message and can still type.
+- **Evaluators:** use the *Evaluator access* panel on the landing page (see below). All accounts are synthetic.
+
 Voice input uses the browser's Web Speech API, which works in **Chrome and Edge** (HTTPS or localhost). Other browsers get a clear message and can
 still type; in an SOS the audio is recorded even when transcription is unavailable.
 

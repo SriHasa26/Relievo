@@ -28,7 +28,8 @@ const param = (req: Request, name: string) => String(req.params[name]);
 
 export function createApp() {
   const app = express();
-  app.set("trust proxy", 1); // behind Render's proxy: req.ip is the real client (used by the rate limiter)
+  // Behind Render's proxy the socket address is the proxy, so req.ip must come from X-Forwarded-For. TRUST_PROXY = number of proxy hops (default 1).
+  app.set("trust proxy", config.trustProxy);
   // CORS: only the deployed frontend (FRONTEND_URL) and, outside production, localhost. Requests without an
   // Origin header (curl, server-to-server, health checks) are not browser requests and are let through.
   const allowed = (origin: string) =>

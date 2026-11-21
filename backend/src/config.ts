@@ -15,7 +15,11 @@ export function apiUrlFrom(value: string | undefined): string | undefined {
 
 const origin = (u: string) => u.trim().replace(/\/+$/, "");
 
+/** How many reverse proxies sit in front of the API (Render's load balancer = 1). Express then reads the client IP from X-Forwarded-For. */
+const trustProxy = (v: string | undefined): number | boolean => (v === "true" ? true : v === "false" ? false : Number.isInteger(Number(v)) && v !== undefined && v !== "" ? Number(v) : 1);
+
 export const config = {
+  trustProxy: trustProxy(process.env.TRUST_PROXY),
   port: Number(process.env.PORT ?? 4000), // Render sets PORT
   isProduction: process.env.NODE_ENV === "production",
   // Browser origins allowed to call the API: the deployed frontend(s), comma separated. Localhost is added outside production.

@@ -34,9 +34,10 @@ export function buildSeed(now = Date.now()): SeedData {
   const users: User[] = [
     user(1, "Asha Rao", "citizen"), user(2, "Ravi Kumar", "citizen"), user(3, "Meena Iyer", "citizen"),
     user(11, "Karthik Reddy", "volunteer"), // medical, available
-    user(12, "Imran Sheikh", "volunteer"), // rescue-certified but BUSY
-    user(13, "Divya Nair", "volunteer", false), // UNVERIFIED
+    user(12, "Imran Sheikh", "volunteer"), // rescue-certified, verified and AVAILABLE (the critical rescue can be matched)
+    user(13, "Divya Nair", "volunteer", false), // UNVERIFIED (kept for contrast)
     user(14, "Sana Khan", "volunteer"), // logistics, available
+    user(15, "Lakshmi Rao", "volunteer"), // verified but BUSY (kept for contrast)
     user(21, "Coordinator Priya", "coordinator"), user(22, "Coordinator Arjun", "coordinator"),
     user(31, "Hope Relief Trust (NGO)", "ngo"),
   ];
@@ -46,9 +47,10 @@ export function buildSeed(now = Date.now()): SeedData {
     ({ user_id: uid(n), skills, qualifications, availability, capacity, lat, lng });
   const volunteerProfiles = [
     vp(11, ["first_aid", "logistics"], ["medical"], "available", 2, 17.4065, 78.4772),
-    vp(12, ["rescue", "logistics"], ["rescue_certified"], "busy", 1, 17.401, 78.47),
+    vp(12, ["rescue", "logistics"], ["rescue_certified"], "available", 1, 17.401, 78.47),
     vp(13, ["general", "first_aid"], [], "available", 1, 17.395, 78.49),
     vp(14, ["logistics", "water_supply", "food", "shelter"], [], "available", 2, 17.43, 78.44),
+    vp(15, ["general", "food"], [], "busy", 1, 17.41, 78.46),
   ];
 
   const organisations: Organisation[] = [

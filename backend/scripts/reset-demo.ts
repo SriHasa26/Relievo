@@ -5,6 +5,7 @@
 // and fresh "minutes ago" times). Stored AI analyses are kept: nothing is sent to the AI. Existing Nexconn rooms are reused
 // (nothing is deleted in Nexconn; stored room ids are kept and their members are re-checked).
 // Supabase Auth accounts are not touched. Never prints keys.
+//   npm run reset:demo -w backend -- --dry-run     only PRINTS what it would delete (counts per table); changes nothing.
 export {}; // module (top-level await)
 
 const { config } = await import("../src/config");
@@ -20,6 +21,7 @@ if (!config.supabaseUrl || !config.supabaseServiceRoleKey) {
   console.log("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in backend/.env. Nothing was changed.");
   process.exit(2);
 }
+const DRY = process.argv.includes("--dry-run");
 const sb = createServiceClient();
 const seed = buildSeed();
 const list = (ids: string[]) => `(${ids.join(",")})`;
@@ -32,6 +34,37 @@ const probe = await sb.from("incidents").select("is_sos").limit(1);
 const migrated = !probe.error;
 if (!migrated) warn("the v3 migration (0003) is not applied yet: restoring the original tables only. Run `npm run verify:schema -w backend`.");
 
+
+const count = async (table: string, build: (q: any) => any): Promise<number> => { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { count: n, error } = await build(sb.from(table).select("*", { count: "exact", head: true }));
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return n ?? 0;
+};
+const seedIncidentIds = seed.incidents.map((i) => i.id);
+
+if (DRY) {
+  console.log("DRY RUN: nothing will be changed. What `reset:demo` would remove:\n");
+  const rows: Array<[string, number]> = [];
+  rows.push(["incidents created after the seed", await count("incidents", (q) => q.not("id", "in", list(seedIncidentIds)))]);
+  rows.push(["  their assignments (cascade)", await count("assignments", (q) => q.not("incident_id", "in", list(seedIncidentIds)))]);
+  rows.push(["  their events (cascade)", await count("incident_events", (q) => q.not("incident_id", "in", list(seedIncidentIds)))]);
+  rows.push(["  their resource allocations (cascade)", await count("resource_allocations", (q) => q.not("incident_id", "in", list(seedIncidentIds)))]);
+  rows.push(["  their AI analyses (cascade)", await count("incident_ai_analysis", (q) => q.not("incident_id", "in", list(seedIncidentIds)))]);
+  rows.push(["  their chat-room rows (cascade)", await count("incident_channels", (q) => q.not("incident_id", "in", list(seedIncidentIds)))]);
+  rows.push(["extra assignments on seeded incidents", await count("assignments", (q) => q.in("incident_id", seedIncidentIds).not("id", "in", list(seed.assignments.map((a) => a.id))))]);
+  rows.push(["extra allocations on seeded incidents", await count("resource_allocations", (q) => q.in("incident_id", seedIncidentIds).not("id", "in", list(seed.allocations.map((a) => a.id))))]);
+  rows.push(["extra events on seeded incidents", await count("incident_events", (q) => q.in("incident_id", seedIncidentIds).not("id", "in", list(seed.events.map((e) => e.id))))]);
+  if (migrated) {
+    rows.push(["notifications (all)", await count("notifications", (q) => q.neq("id", "00000000-0000-0000-0000-000000000000"))]);
+    rows.push(["citizen chat-room rows", await count("incident_channels", (q) => q.neq("kind", "operations"))]);
+    rows.push(["SOS audio clips", await count("sos_audio", (q) => q.neq("incident_id", "00000000-0000-0000-0000-000000000000"))]);
+  }
+  for (const [label, n] of rows) console.log(`${String(n).padStart(5)}  ${label}`);
+  console.log(`\nIt would then restore ${seed.incidents.length} incidents, ${seed.assignments.length} assignments, ${seed.events.length} events, ${seed.resources.length} resources and ${seed.volunteerProfiles.length} volunteer profiles from the seed.`);
+  console.log("Stored AI analyses of seeded incidents are kept. Nexconn is not touched. Nothing was changed.");
+  process.exit(0);
+}
+
 // 1. notifications: all of them (they only describe activity that is being reset)
 if (migrated) {
   const { error } = await sb.from("notifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -40,7 +73,6 @@ if (migrated) {
 }
 
 // 2. incidents created after the seed (their assignments, events, allocations, analyses, SOS audio and room rows cascade)
-const seedIncidentIds = seed.incidents.map((i) => i.id);
 {
   const { data, error } = await sb.from("incidents").delete().not("id", "in", list(seedIncidentIds)).select("id");
   check("incidents", error);
@@ -69,8 +101,14 @@ const upsert = async (table: string, rows: object[], onConflict?: string) => {
   check(table, error);
   ok(`restored ${table}: ${rows.length}`);
 };
-await upsert("users", seed.users.map(({ password: _p, ...u }) => u));
-await upsert("volunteer_profiles", seed.volunteerProfiles);
+// users and profiles are tied to Supabase Auth accounts: restore only the ones that exist (run `npm run seed:supabase -w backend` once to create new seed accounts)
+const { data: existingUsers, error: usersError } = await sb.from("users").select("id");
+check("users", usersError);
+const known = new Set((existingUsers ?? []).map((u) => String(u.id)));
+const newAccounts = seed.users.filter((u) => !known.has(u.id));
+if (newAccounts.length) warn(`${newAccounts.length} seed account(s) do not exist yet (${newAccounts.map((u) => u.name).join(", ")}): run \`npm run seed:supabase -w backend\` once.`);
+await upsert("users", seed.users.filter((u) => known.has(u.id)).map(({ password: _p, ...u }) => u));
+await upsert("volunteer_profiles", seed.volunteerProfiles.filter((p) => known.has(p.user_id)));
 await upsert("organisations", seed.organisations);
 const incidents = migrated
   ? seed.incidents.map((i) => ({ ...i, is_sos: false, sos_status: null, sos_approximate: false, priority_override: null }))

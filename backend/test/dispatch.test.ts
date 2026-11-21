@@ -15,9 +15,9 @@ const karthik = () => user(11);
 beforeEach(() => resetDb(buildSeed()));
 
 describe("matching list", () => {
-  it("excludes busy Imran and unverified Divya, with reasons", async () => {
+  it("excludes busy Lakshmi and unverified Divya, with reasons", async () => {
     const m = await matchesFor(FOOD);
-    expect(m.find((x) => x.volunteer_id === uid(12))).toMatchObject({ eligible: false });
+    expect(m.find((x) => x.volunteer_id === uid(15))).toMatchObject({ eligible: false });
     expect(m.find((x) => x.volunteer_id === uid(13))).toMatchObject({ eligible: false });
     expect(m.filter((x) => x.eligible).map((x) => x.volunteer_id)).toEqual(
       expect.arrayContaining([uid(11), uid(14)]),
@@ -25,7 +25,13 @@ describe("matching list", () => {
     expect(m[0]!.breakdown).not.toBeNull();
   });
 
+  it("recommends the rescue-certified volunteer (Imran) for the critical rescue", async () => {
+    const eligible = (await matchesFor(RESCUE)).filter((m) => m.eligible);
+    expect(eligible[0]?.volunteer_id).toBe(uid(12));
+  });
+
   it("shows nobody eligible for a rescue task when the only certified volunteer is busy", async () => {
+    db.volunteerProfiles.find((p) => p.user_id === uid(12))!.availability = "busy";
     expect((await matchesFor(RESCUE)).some((m) => m.eligible)).toBe(false);
   });
 
@@ -44,7 +50,7 @@ describe("approve, accept, decline", () => {
   });
 
   it("refuses an ineligible volunteer even if the UI asks for one", async () => {
-    await expect(assignVolunteer(coordinator(), FOOD, uid(12))).rejects.toThrow(/busy/);
+    await expect(assignVolunteer(coordinator(), FOOD, uid(15))).rejects.toThrow(/busy/);
     await expect(assignVolunteer(coordinator(), FOOD, uid(13))).rejects.toThrow(/unverified|verified/i);
     expect(incident(FOOD).status).toBe("verified");
   });

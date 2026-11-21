@@ -110,14 +110,14 @@ describe("dispatch board", () => {
   it("lists verified, unassigned incidents most urgent first, each with a distinct suggested volunteer", async () => {
     const board = await dispatchBoard();
     expect(board.items.map((i) => i.incident.id)).toEqual([uid(104), uid(103)]); // critical rescue before high food
-    // the only rescue-certified volunteer (Imran) is busy, so the rescue has no suggestion; the food request gets one
-    expect(board.items[0]!.suggestion).toBeNull();
+    // the critical rescue picks first and gets the rescue-certified Imran; the food request gets someone else
+    expect(board.items[0]!.suggestion?.volunteer_id).toBe(uid(12));
     const picks = board.items.map((i) => i.suggestion?.volunteer_id).filter(Boolean);
-    expect(picks).toHaveLength(1);
+    expect(picks).toHaveLength(2);
     expect(new Set(picks).size).toBe(picks.length);
     expect(board.items[1]!.options.length).toBeGreaterThan(0);
     // hard exclusions still apply: the busy and the unverified volunteer are never suggested
-    expect(picks).not.toContain(uid(12));
+    expect(picks).not.toContain(uid(15));
     expect(picks).not.toContain(uid(13));
   });
 
@@ -130,7 +130,7 @@ describe("dispatch board", () => {
       expect(db.incidents.find((i) => i.id === p.incident_id)!.status).toBe("assigned");
       expect(db.events.some((e) => e.incident_id === p.incident_id && e.action === "assigned")).toBe(true);
     }
-    expect((await dispatchBoard()).items.map((i) => i.incident.id)).toEqual([uid(104)]); // the unmatched rescue stays on the board
+    expect((await dispatchBoard()).items).toHaveLength(0); // both incidents now have a volunteer
   });
 
   it("approving the same volunteer for two incidents in one batch fails for the second", async () => {

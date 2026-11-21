@@ -12,7 +12,7 @@ const { config } = await import("../src/config");
 const { createServiceClient } = await import("../src/store/supabaseRepo");
 const { buildSeed, DEMO_PASSWORD } = await import("../src/store/seedData");
 const { extractIncident } = await import("../src/services/extraction");
-const { registerAllUsers, restoreRooms } = await import("../src/services/rooms");
+const { registerAllUsers, restoreRooms, ensureVolunteerHub } = await import("../src/services/rooms");
 
 if (!config.supabaseUrl || !config.supabaseServiceRoleKey) {
   throw new Error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in backend/.env first.");
@@ -54,14 +54,19 @@ await upsert("volunteer_profiles", data.volunteerProfiles);
 await upsert("organisations", data.organisations);
 await upsert("incidents", data.incidents);
 
-// 3. AI analysis for every seeded incident, one call at a time (the extraction service spaces calls 3 s apart).
+// 3. AI analysis only for seeded incidents that have NONE stored yet (the extraction service spaces calls 3 s apart).
+//    Re-running the seed never calls the AI again for an incident that already has a stored analysis.
+const { data: stored, error: storedError } = await sb.from("incident_ai_analysis").select("incident_id");
+if (storedError) throw new Error(`incident_ai_analysis: ${storedError.message}`);
+const haveAnalysis = new Set((stored ?? []).map((r) => String(r.incident_id)));
 const analyses = [];
 for (const incident of data.incidents) {
+  if (haveAnalysis.has(incident.id)) { console.log(`analysis for ${incident.id.slice(-3)}: kept (already stored, no AI call)`); continue; }
   const ai = await extractIncident(incident.original_text);
   analyses.push({ incident_id: incident.id, ...ai });
   console.log(`analysis for ${incident.id.slice(-3)}: ${ai.source} (${ai.model_version})`);
 }
-await upsert("incident_ai_analysis", analyses);
+if (analyses.length) await upsert("incident_ai_analysis", analyses);
 
 await upsert("assignments", data.assignments);
 await upsert("resources", data.resources);
@@ -73,7 +78,8 @@ await upsert("incident_channels", data.channels);
 if (!config.mockChat) {
   await registerAllUsers();
   await restoreRooms();
-  console.log("Nexconn: users registered, seeded rooms created");
+  await ensureVolunteerHub().catch((e: Error) => console.log(`Volunteer Hub skipped: ${e.message}`));
+  console.log("Nexconn: users registered, seeded rooms created, Volunteer Hub checked");
 } else {
   console.log("MOCK_CHAT=true: Nexconn step skipped");
 }
