@@ -48,6 +48,7 @@ export interface Assignment {
 export interface IncidentDetailData {
   incident: Incident;
   priority: Priority;
+  sos: { status: "active" | "cancelled"; approximate: boolean; has_audio: boolean; transcript: string; duration_s: number } | null;
   reporter: { id: string; name: string } | null;
   analysis: Analysis | null;
   assignments: Assignment[];

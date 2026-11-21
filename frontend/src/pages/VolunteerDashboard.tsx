@@ -39,8 +39,10 @@ export default function VolunteerDashboard() {
   };
 
   const all = items ?? [];
+  // Active SOS alerts nobody has taken yet (the server only lists them for VERIFIED volunteers)
+  const sosAlerts = all.filter((i) => i.is_sos && i.sos_status === "active" && !i.assignee);
   const pending = all.filter((i) => i.assignee?.status === "approved");
-  const rest = all.filter((i) => i.assignee?.status !== "approved");
+  const rest = all.filter((i) => i.assignee?.status !== "approved" && !sosAlerts.includes(i));
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -58,6 +60,17 @@ export default function VolunteerDashboard() {
       </div>
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       {items === null && <SkeletonList rows={2} />}
+
+      {sosAlerts.length > 0 && <h2 className="font-display text-lg font-semibold text-red-700">SOS alerts</h2>}
+      <div className="space-y-3">
+        {sosAlerts.map((i) => (
+          <Link key={i.id} to={`/incidents/${i.id}`} className="rr-card card-critical block p-3.5">
+            <div className="flex flex-wrap items-center gap-2"><span className="alert-tag">SOS</span><span className="font-display font-semibold">Citizen needs urgent help</span>
+              <span className="text-sm text-slate-500">{i.address_text}</span></div>
+            <p className="mt-1 text-sm">Open to hear the recording and see the location. A coordinator decides who goes.</p>
+          </Link>
+        ))}
+      </div>
 
       {pending.length > 0 && <h2 className="font-display text-lg font-semibold">Waiting for your answer</h2>}
       <div className="stagger space-y-3">

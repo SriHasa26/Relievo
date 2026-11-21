@@ -9,6 +9,7 @@ import { Timeline } from "@/components/Timeline";
 import { ReportVsAi, VerifyPanel } from "@/components/VerifyPanel";
 import { AssignmentMap } from "@/components/MapView";
 import { SkeletonList, UrgencyGauge } from "@/components/kit";
+import { SosPanel } from "@/components/SosPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -80,6 +81,8 @@ export default function IncidentDetail() {
       {incident.status === "rejected" && (
         <p className="rounded bg-red-50 p-2 text-sm text-red-800">Rejected: {incident.reject_reason}</p>
       )}
+
+      <SosPanel data={data} isOwner={user.role === "citizen"} onChange={load} />
 
       {isCoordinator ? (
         <ReportVsAi data={data} />

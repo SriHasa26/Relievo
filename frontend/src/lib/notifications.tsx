@@ -34,6 +34,7 @@ interface State {
 }
 const Ctx = createContext<State | null>(null);
 
+const alertRank = (n: AppNotification) => (n.type === "sos" || n.type === "sos_audio" ? 0 : n.priority === "critical" ? 1 : 2);
 const isLoud = (n: AppNotification) => n.priority === "critical" || n.priority === "high";
 const CHAT_TITLE_FALLBACK = "New chat message";
 
@@ -58,8 +59,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       const fresh = res.items.filter((n) => !n.read_at && isLoud(n) && !popped.current.has(n.id));
       if (fresh.length) {
         fresh.forEach((n) => popped.current.add(n.id));
-        // highest priority first, then oldest first, so the most urgent alert is the one on screen
-        setQueue((q) => [...q, ...fresh].sort((a, b) => Number(b.priority === "critical") - Number(a.priority === "critical") || a.created_at.localeCompare(b.created_at)));
+        // SOS first, then Critical, then High; oldest first within a group, so the most urgent alert is the one on screen
+        setQueue((q) => [...q, ...fresh].sort((a, b) => alertRank(a) - alertRank(b) || a.created_at.localeCompare(b.created_at)));
       }
       if (firstLoad.current) { // right after login
         firstLoad.current = false;

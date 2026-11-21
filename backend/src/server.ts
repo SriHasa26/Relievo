@@ -1,6 +1,6 @@
 import { createApp } from "./app";
 import { config } from "./config";
-import { registerAllUsers, restoreRooms } from "./services/rooms";
+import { ensureVolunteerHub, registerAllUsers, restoreRooms } from "./services/rooms";
 import { runEscalationCheck } from "./services/escalation";
 
 /** A production deploy must never run on mock data, mock chat or the dev store. Fail fast with a clear message. */
@@ -36,5 +36,8 @@ createApp().listen(config.port, () => {
     await restoreRooms() // groups for the rooms already stored (seeded ones included); never creates a second room
       .then(() => console.log("Stored chat rooms checked"))
       .catch((e: Error) => console.warn("Chat rooms check failed:", e.message));
+    await ensureVolunteerHub() // the persistent Volunteer Hub: all volunteers + coordinators
+      .then(() => console.log("Volunteer Hub ready"))
+      .catch((e: Error) => console.warn("Volunteer Hub set-up failed:", e.message));
   })();
 });

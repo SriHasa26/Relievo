@@ -3,6 +3,7 @@ import { Check, CircleAlert, MapPin, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LocationPicker } from "@/components/MapView";
 import { NeuToggle, SuccessCheck, useToast } from "@/components/kit";
+import { VoiceButton } from "@/components/VoiceButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -76,7 +77,9 @@ export default function NewRequest() {
         <CardHeader><CardTitle>What do you need?</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <label className="block">
-            <span className="text-sm font-medium">Describe the emergency</span>
+            <span className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">Describe the emergency
+              <VoiceButton getText={() => text} onText={setText} />
+            </span>
             <textarea
               required rows={5} value={text} onChange={(e) => setText(e.target.value)}
               placeholder="e.g. Water is entering our ground floor. Six people, including an elderly person. We need drinking water."

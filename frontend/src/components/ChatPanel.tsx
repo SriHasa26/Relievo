@@ -5,6 +5,7 @@ import {
   type ChatMessage, type ConnectionStatus, type Conversation,
 } from "@/integrations/nexconnClient";
 import { MessagesSquare, Send } from "lucide-react";
+import { VoiceButton } from "@/components/VoiceButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ensureConnected } from "@/lib/chat";
@@ -123,7 +124,8 @@ export function ChatPanel({
             <Button type="button" size="sm" variant="outline" onClick={() => setAttempt((n) => n + 1)}>Retry</Button>
           </div>
         )}
-        <form onSubmit={send} className="flex gap-2">
+        <form onSubmit={send} className="flex items-start gap-2">
+          <VoiceButton getText={() => text} onText={setText} />
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message…" aria-label="Message"
             className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
           <Button type="submit"><Send className="size-4" aria-hidden />Send</Button>

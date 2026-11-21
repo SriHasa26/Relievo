@@ -111,3 +111,39 @@ export async function registerAllUsers() {
   const users = await (await getRepo()).users();
   await nexconn.registerUsers(users.map((u) => ({ userId: u.id, name: u.name })));
 }
+
+
+// ---------- Volunteer Hub: one persistent group with ALL volunteers and ALL coordinators ----------
+// The id is a fixed opaque UUID (not derived from anything). Membership comes from the users table, never from the client.
+export const VOLUNTEER_HUB_ID = "00000000-0000-4000-8000-0000000000a1";
+let hubReady = false;
+export const resetHubState = () => { hubReady = false; }; // tests only
+
+const hubPeople = async () => (await (await getRepo()).users()).filter((u) => u.role === "volunteer" || u.role === "coordinator");
+
+/** Create the Hub (idempotent) and make sure every volunteer and coordinator is in it. Called at start-up and on access. */
+export async function ensureVolunteerHub() {
+  const people = await hubPeople();
+  const owner = people.find((u) => u.role === "coordinator") ?? people[0];
+  if (!owner) return;
+  await nexconn.createGroup({
+    groupId: VOLUNTEER_HUB_ID, name: "Volunteer Hub", ownerId: owner.id,
+    memberIds: people.filter((u) => u.id !== owner.id).map((u) => u.id), mayExist: true,
+  });
+  hubReady = true;
+}
+
+/** Post a system alert into the Hub (for example when an SOS starts). Never includes exact locations: unverified volunteers are members. */
+export async function postHubAlert(text: string) {
+  if (!hubReady) await ensureVolunteerHub();
+  await nexconn.postSystemMessage({ groupId: VOLUNTEER_HUB_ID, text });
+}
+
+/** Volunteers (verified or not) and coordinators may open the Hub, with or without an assignment. */
+export async function hubAccess(user: User) {
+  if (user.role !== "volunteer" && user.role !== "coordinator") throw new HttpError(403, "The Volunteer Hub is for volunteers and coordinators");
+  if (!hubReady) await ensureVolunteerHub();
+  await nexconn.addMember({ groupId: VOLUNTEER_HUB_ID, userId: user.id }); // idempotent
+  const people = await hubPeople();
+  return { groupId: VOLUNTEER_HUB_ID, participants: people.map((u) => ({ id: u.id, name: u.name, role: u.role })) };
+}

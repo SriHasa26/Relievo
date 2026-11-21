@@ -9,7 +9,8 @@ import { DEMO_PASSWORD } from "./store/seedData";
 import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
 } from "./services/dispatch";
-import { chatContacts, chatToken, roomAccess } from "./services/rooms";
+import { chatContacts, chatToken, hubAccess, roomAccess } from "./services/rooms";
+import { attachSosAudio, cancelSos, getSosAudio, sosInfo, startSos } from "./services/sos";
 import { computeMetrics } from "./services/metrics";
 import { allocateResource, listResources } from "./services/resources";
 import {
@@ -33,7 +34,8 @@ export function createApp() {
     config.frontendUrls.includes(origin.replace(/\/+$/, ""))
     || (!config.isProduction && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
   app.use(cors({ origin: (origin, cb) => cb(null, !origin || allowed(origin)) }));
-  app.use(express.json());
+  // Small bodies everywhere; only the SOS audio upload (base64 clip + transcript) may be larger.
+  app.use((req, res, next) => (req.path.endsWith("/sos-audio") ? express.json({ limit: "3mb" }) : express.json())(req, res, next));
 
   // Liveness + which mock flags are on. No secrets. /health is for Render's health check, /api/health for the frontend.
   const health = (_req: Request, res: Response) => res.json({
@@ -74,7 +76,31 @@ export function createApp() {
   }));
 
   app.get("/api/incidents", requireAuth, wrap(async (req, res) => res.json(await listIncidents(req.user!))));
-  app.get("/api/incidents/:id", requireAuth, wrap(async (req, res) => res.json(await incidentDetail(req.user!, param(req, "id")))));
+  app.get("/api/incidents/:id", requireAuth, wrap(async (req, res) => {
+    const detail = await incidentDetail(req.user!, param(req, "id"));
+    res.json({ ...detail, sos: await sosInfo(req.user!, detail.incident) });
+  }));
+
+  // ---- EMERGENCY SOS (the incident is created first; audio and transcript are attached afterwards) ----
+  app.post("/api/sos", requireAuth, requireRole("citizen"), rateLimit(LIMITS.sos), wrap(async (req, res) => {
+    const b = req.body ?? {};
+    const { incident, existing } = await startSos(req.user!, {
+      lat: b.lat == null ? undefined : Number(b.lat), lng: b.lng == null ? undefined : Number(b.lng),
+      address_text: typeof b.address_text === "string" ? b.address_text : undefined,
+    });
+    res.status(existing ? 200 : 201).json({ incident, existing });
+  }));
+  app.post("/api/incidents/:id/sos-audio", requireAuth, requireRole("citizen"), rateLimit(LIMITS.sosAudio), wrap(async (req, res) => {
+    res.status(201).json(await attachSosAudio(req.user!, param(req, "id"), req.body ?? {}));
+  }));
+  app.get("/api/incidents/:id/sos-audio", requireAuth, wrap(async (req, res) => {
+    const clip = await getSosAudio(req.user!, param(req, "id"));
+    res.setHeader("Cache-Control", "private, no-store");
+    res.type(clip.mime).send(clip.buffer);
+  }));
+  app.post("/api/incidents/:id/sos-cancel", requireAuth, requireRole("citizen"), wrap(async (req, res) => {
+    res.json(await cancelSos(req.user!, param(req, "id")));
+  }));
   app.get("/api/incidents/:id/events", requireAuth, wrap(async (req, res) => res.json(await incidentEvents(req.user!, param(req, "id")))));
 
   app.post("/api/incidents/:id/verify", requireAuth, requireRole("coordinator"), wrap(async (req, res) => {
@@ -112,6 +138,7 @@ export function createApp() {
   // Token is always issued for the signed-in user only.
   app.post("/api/chat/token", requireAuth, rateLimit(LIMITS.chatToken), wrap(async (req, res) => res.json(await chatToken(req.user!))));
   app.get("/api/incidents/:id/room", requireAuth, wrap(async (req, res) => res.json(await roomAccess(req.user!, param(req, "id")))));
+  app.get("/api/chat/hub", requireAuth, wrap(async (req, res) => res.json(await hubAccess(req.user!))));
   app.get("/api/chat/contacts", requireAuth, wrap(async (req, res) => res.json(await chatContacts(req.user!))));
 
   // ---- notifications (the frontend polls this while the tab is visible) ----

@@ -16,13 +16,14 @@ interface Props {
 
 /** One incident in a list. */
 export function IncidentRow({ incident: i, tilt, selected, fresh, changed, shake, onSelect }: Props) {
-  const emergency = i.urgency === "critical" && (i.status === "submitted" || i.status === "verified");
+  const emergency = (i.urgency === "critical" || i.is_sos === true) && (i.status === "submitted" || i.status === "verified");
   const row = (
     <Link to={`/incidents/${i.id}`} onMouseEnter={onSelect} onFocus={onSelect}
       className={cn("rr-card block p-3.5 transition-colors hover:border-[var(--brand)] focus-visible:border-[var(--brand)]",
         emergency && "card-critical", selected && "border-[var(--brand)]", fresh && "fresh-in", changed && "flash-change", shake && "shake-once")}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-display font-semibold capitalize">{label(i.category)}</span>
+        {i.is_sos && i.sos_status !== "cancelled" && <span className="alert-tag">SOS</span>}
         <UrgencyBadge urgency={i.urgency} />
         <StatusBadge status={i.status} />
         {i.possible_duplicate_of && <span className="text-xs text-amber-800">possible duplicate</span>}

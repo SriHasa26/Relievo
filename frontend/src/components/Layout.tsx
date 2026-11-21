@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NeuToggle, SkeletonList, ThemeToggle } from "@/components/kit";
 import { AlertModal, LoginSummary, NotificationBell } from "@/components/notifications";
+import { SosButton } from "@/components/Sos";
 import { isMockChat } from "@/integrations/nexconnClient";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { useLargeText } from "@/lib/prefs";
@@ -51,6 +52,7 @@ function Shell({ user }: { user: User }) {
           </nav>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
             {isMockChat && <span className="pill tone-amber whitespace-nowrap" title="Chat is simulated, not Nexconn">MOCK CHAT</span>}
+            {user.role === "citizen" && <SosButton />}
             {user.role !== "ngo" && <NotificationBell />}
             <ThemeToggle />
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium">
