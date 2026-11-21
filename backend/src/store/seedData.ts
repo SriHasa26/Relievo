@@ -2,8 +2,8 @@
 // Used by the in-memory store (MOCK_DB) and by scripts/seed-supabase.ts.
 import { keywordExtract } from "../services/extraction";
 import type {
-  Assignment, AiAnalysis, Incident, IncidentChannel, IncidentEvent, Organisation,
-  Resource, ResourceAllocation, User, VolunteerProfile,
+  Assignment, AiAnalysis, Incident, IncidentChannel, IncidentEvent, Notification, Organisation,
+  Resource, ResourceAllocation, SosAudio, User, VolunteerProfile,
 } from "../types";
 
 export const DEMO_PASSWORD = "demo1234";
@@ -20,6 +20,8 @@ export interface SeedData {
   allocations: ResourceAllocation[];
   events: IncidentEvent[];
   channels: IncidentChannel[];
+  notifications: Notification[]; // empty in the seed; filled while the app runs
+  sosAudio: SosAudio[];
 }
 
 export function buildSeed(now = Date.now()): SeedData {
@@ -130,5 +132,5 @@ export function buildSeed(now = Date.now()): SeedData {
     incident_id: uid(n), nexconn_channel_id: `room-${uid(n)}`,
   }));
 
-  return { users, volunteerProfiles, organisations, incidents, analyses, assignments, resources, allocations, events, channels };
+  return { users, volunteerProfiles, organisations, incidents, analyses, assignments, resources, allocations, events, channels, notifications: [], sosAudio: [] };
 }

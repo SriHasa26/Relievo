@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "seed:supabase": "tsx scripts/seed-supabase.ts",
     "verify:nexconn": "tsx scripts/verify-nexconn.ts",
-    "verify:supabase": "tsx scripts/verify-supabase.ts"
+    "verify:supabase": "tsx scripts/verify-supabase.ts",
+    "verify:schema": "tsx scripts/verify-schema.ts",
+    "reset:demo": "tsx scripts/reset-demo.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

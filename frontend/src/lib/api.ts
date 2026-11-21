@@ -11,6 +11,17 @@ export const hasMockToken = () => Boolean(sessionStorage.getItem("rr-token"));
 export const setToken = (t: string | null) =>
   t ? sessionStorage.setItem("rr-token", t) : sessionStorage.removeItem("rr-token");
 
+/** Fetch a protected binary (for example SOS audio) with the session token and return it as a Blob. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const token = await tokenProvider();
+  const res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Request failed (${res.status})`);
+  }
+  return res.blob();
+}
+
 export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = await tokenProvider();
   const res = await fetch(`${BASE}${path}`, {

@@ -8,6 +8,8 @@ import { MessagesSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ensureConnected } from "@/lib/chat";
+import { clearViewing, convKey, setViewing } from "@/lib/chatState";
+import { useNotifications } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel({
@@ -20,6 +22,16 @@ export function ChatPanel({
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [attempt, setAttempt] = useState(0); // bumped by the Retry button
   const bottom = useRef<HTMLDivElement>(null);
+  const { clearChat } = useNotifications();
+
+  // While this panel is open its messages are read: no notification for them, and its unread count is cleared.
+  useEffect(() => {
+    const key = convKey(conversation);
+    setViewing(key);
+    clearChat(key);
+    return () => clearViewing(key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.type, conversation.id]);
 
   useEffect(() => {
     let cancelled = false;

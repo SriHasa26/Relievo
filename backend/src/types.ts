@@ -53,6 +53,11 @@ export interface Incident {
   possible_duplicate_of: string | null;
   is_synthetic: boolean;
   created_at: string;
+  // v3 (optional so older rows and tests still type-check; the migration gives the columns defaults)
+  is_sos?: boolean;
+  sos_status?: "active" | "cancelled" | null;
+  sos_approximate?: boolean;
+  priority_override?: Urgency | null; // an explicit coordinator choice; replaces the computed level
 }
 
 export interface Extraction {
@@ -119,7 +124,37 @@ export interface IncidentEvent {
   created_at: string;
 }
 
+export type ChannelKind = "operations" | "citizen";
 export interface IncidentChannel {
   incident_id: string;
   nexconn_channel_id: string;
+  kind?: ChannelKind; // defaults to "operations"
+}
+
+export type NotificationType =
+  | "new_incident" | "sos" | "sos_audio" | "sos_cancelled" | "priority_alert" | "assignment_offer"
+  | "volunteer_accepted" | "volunteer_declined" | "escalation" | "hub_alert";
+export interface Notification {
+  id: string;
+  recipient_user_id: string | null;
+  recipient_role: Role | null;
+  type: NotificationType;
+  priority: Urgency;
+  incident_id: string | null;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  created_at: string;
+  read_at: string | null;
+}
+
+/** A recorded SOS clip. Stored privately; only the backend can read it and only authorised roles are served it. */
+export interface SosAudio {
+  incident_id: string;
+  mime: string;
+  duration_s: number;
+  size_bytes: number;
+  transcript: string;
+  data_base64: string;
+  created_at: string;
 }

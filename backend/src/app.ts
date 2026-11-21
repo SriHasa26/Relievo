@@ -3,6 +3,8 @@ import express, { type NextFunction, type Request, type RequestHandler, type Res
 import { config } from "./config";
 import { login, requireAuth, requireRole, toPublic, type AuthedRequest } from "./auth";
 import { getRepo } from "./store/repo";
+import { LIMITS, rateLimit } from "./ratelimit";
+import { listNotifications, markRead } from "./services/notifications";
 import { DEMO_PASSWORD } from "./store/seedData";
 import {
   assignVolunteer, matchesFor, reassignVolunteer, resolveIncident, respondToAssignment, setAvailability, volunteerProfile,
@@ -24,6 +26,7 @@ const param = (req: Request, name: string) => String(req.params[name]);
 
 export function createApp() {
   const app = express();
+  app.set("trust proxy", 1); // behind Render's proxy: req.ip is the real client (used by the rate limiter)
   // CORS: only the deployed frontend (FRONTEND_URL) and, outside production, localhost. Requests without an
   // Origin header (curl, server-to-server, health checks) are not browser requests and are let through.
   const allowed = (origin: string) =>
@@ -43,7 +46,7 @@ export function createApp() {
 
   // ---- auth (mock accounts) ----
   // MOCK_DB: demo sessions. With Supabase the browser signs in with Supabase Auth itself; this is only a scripting helper (DEMO_LOGIN).
-  app.post("/api/auth/login", wrap(async (req, res) => {
+  app.post("/api/auth/login", rateLimit(LIMITS.login), wrap(async (req, res) => {
     const result = await login(String(req.body?.email ?? ""), String(req.body?.password ?? ""));
     if (!result) return void res.status(401).json({ error: "Wrong email or password" });
     res.json(result);
@@ -60,7 +63,7 @@ export function createApp() {
   app.get("/api/me", requireAuth, (req: AuthedRequest, res) => res.json(toPublic(req.user!)));
 
   // ---- incidents ----
-  app.post("/api/incidents", requireAuth, requireRole("citizen"), wrap(async (req, res) => {
+  app.post("/api/incidents", requireAuth, requireRole("citizen"), rateLimit(LIMITS.submit), wrap(async (req, res) => {
     const b = req.body ?? {};
     const incident = await submitIncident(req.user!, {
       text: String(b.text ?? ""), lat: Number(b.lat), lng: Number(b.lng),
@@ -107,9 +110,16 @@ export function createApp() {
 
   // ---- rooms and chat (Nexconn via the adapter) ----
   // Token is always issued for the signed-in user only.
-  app.post("/api/chat/token", requireAuth, wrap(async (req, res) => res.json(await chatToken(req.user!))));
+  app.post("/api/chat/token", requireAuth, rateLimit(LIMITS.chatToken), wrap(async (req, res) => res.json(await chatToken(req.user!))));
   app.get("/api/incidents/:id/room", requireAuth, wrap(async (req, res) => res.json(await roomAccess(req.user!, param(req, "id")))));
   app.get("/api/chat/contacts", requireAuth, wrap(async (req, res) => res.json(await chatContacts(req.user!))));
+
+  // ---- notifications (the frontend polls this while the tab is visible) ----
+  app.get("/api/notifications", requireAuth, wrap(async (req, res) => res.json(await listNotifications(req.user!))));
+  app.post("/api/notifications/read", requireAuth, wrap(async (req, res) => {
+    await markRead(req.user!, req.body?.all === true ? "all" : req.body?.ids);
+    res.json({ ok: true });
+  }));
 
   // ---- resources and impact ----
   app.get("/api/resources", requireAuth, requireRole("coordinator", "ngo"), wrap(async (req, res) => {

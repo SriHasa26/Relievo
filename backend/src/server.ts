@@ -1,6 +1,7 @@
 import { createApp } from "./app";
 import { config } from "./config";
 import { registerAllUsers, restoreRooms } from "./services/rooms";
+import { runEscalationCheck } from "./services/escalation";
 
 /** A production deploy must never run on mock data, mock chat or the dev store. Fail fast with a clear message. */
 function assertProductionConfig() {
@@ -22,6 +23,9 @@ assertProductionConfig();
 createApp().listen(config.port, () => {
   console.log(`Relievo API listening on port ${config.port}  (MOCK_CHAT=${config.mockChat} MOCK_AI=${config.mockAi} MOCK_DB=${config.mockDb})`);
   if (config.mockChat || config.mockAi || config.mockDb) console.log("MOCK flags are on. Set MOCK_CHAT, MOCK_AI and MOCK_DB to false for the demo.");
+
+  // Escalate incidents nobody has taken for too long (once each), every minute.
+  setInterval(() => { void runEscalationCheck().catch((e: Error) => console.warn("escalation check failed:", e.message)); }, 60_000);
 
   // Chat set-up runs in the background so a slow Nexconn never delays or blocks the server from starting.
   // Both steps are safe to repeat on every restart: they reuse the stored room ids and only add what is missing.

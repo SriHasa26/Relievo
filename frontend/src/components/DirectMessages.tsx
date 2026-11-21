@@ -4,13 +4,16 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { MessageSquare } from "lucide-react";
 import { EmptyState, Skeleton } from "@/components/kit";
 import { Button } from "@/components/ui/button";
+import { CountBadge } from "@/components/Layout";
 import { api } from "@/lib/api";
+import { useNotifications } from "@/lib/notifications";
 
 interface Contact { id: string; name: string; role: string }
 
 export function DirectMessages({ preferId }: { preferId?: string }) {
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [selected, setSelected] = useState<string | undefined>(preferId);
+  const { chatUnread } = useNotifications();
 
   useEffect(() => {
     api<Contact[]>("/api/chat/contacts").then((c) => {
@@ -30,6 +33,7 @@ export function DirectMessages({ preferId }: { preferId?: string }) {
         {contacts.map((c) => (
           <Button key={c.id} size="sm" variant={c.id === selected ? "default" : "outline"} onClick={() => setSelected(c.id)}>
             {c.name}
+            {c.id !== selected && <CountBadge n={chatUnread[`direct:${c.id}`] ?? 0} label="messages" />}
           </Button>
         ))}
       </div>

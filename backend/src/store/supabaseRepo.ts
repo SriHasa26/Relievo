@@ -3,7 +3,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "../config";
 import type { Repo } from "./repo";
-import type { Assignment, IncidentEvent, ResourceAllocation, User } from "../types";
+import type { Assignment, IncidentEvent, Notification, ResourceAllocation, SosAudio, User } from "../types";
 
 type Row = Record<string, unknown>;
 
@@ -91,7 +91,30 @@ export function createSupabaseRepo(sb: SupabaseClient = createServiceClient()): 
     addEvent: async (e) => insert("incident_events", e),
 
     channels: async () => select("incident_channels"),
-    channel: async (incidentId) => one("incident_channels", "incident_id", incidentId) as never,
+    channel: async (incidentId, kind = "operations") => {
+      const { data, error } = await sb.from("incident_channels").select("*").eq("incident_id", incidentId).eq("kind", kind).maybeSingle();
+      if (error) fail("select incident_channels", error);
+      return (data as never) ?? null;
+    },
     addChannel: async (c) => insert("incident_channels", c),
+
+    notifications: async (userId) => (await select("notifications", (q) => q.eq("recipient_user_id", userId).order("created_at", { ascending: false }).limit(100)))
+      .map((r) => ({ ...(r as unknown as Notification), created_at: iso(r.created_at)!, read_at: iso(r.read_at) })),
+    addNotification: async (n) => insert("notifications", n),
+    markNotificationsRead: async (userId, ids) => {
+      let q = sb.from("notifications").update({ read_at: new Date().toISOString() }).eq("recipient_user_id", userId).is("read_at", null);
+      if (ids !== "all") q = q.in("id", ids);
+      const { error } = await q;
+      if (error) fail("update notifications", error);
+    },
+
+    sosAudio: async (incidentId) => {
+      const r = await one("sos_audio", "incident_id", incidentId);
+      return r ? ({ ...(r as unknown as SosAudio), created_at: iso(r.created_at)!, duration_s: Number(r.duration_s) }) : null;
+    },
+    saveSosAudio: async (a) => {
+      const { error } = await sb.from("sos_audio").upsert(a);
+      if (error) fail("upsert sos_audio", error);
+    },
   };
 }

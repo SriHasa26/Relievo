@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import { BarChart3, Boxes, HeartHandshake, LayoutDashboard, ListChecks, LogOut, MessageSquare, PlusCircle, ShieldAlert, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { HOME, type Role } from "@/lib/types";
+import { HOME, type Role, type User } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NeuToggle, SkeletonList, ThemeToggle } from "@/components/kit";
+import { AlertModal, LoginSummary, NotificationBell } from "@/components/notifications";
 import { isMockChat } from "@/integrations/nexconnClient";
+import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { useLargeText } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 
@@ -17,12 +19,18 @@ const NAV: Record<Role, Array<[string, string, LucideIcon]>> = {
   ngo: [["/resources", "Resources", Boxes]],
 };
 
-export function Layout() {
-  const { user, loading, signOut } = useAuth();
+/** Small unread-count badge used on nav links. */
+export const CountBadge = ({ n, label }: { n: number; label: string }) =>
+  n > 0 ? (
+    <span aria-label={`${n} unread ${label}`} className="ml-0.5 grid min-w-[1.15rem] place-items-center rounded-full px-1 text-[0.65rem] font-bold leading-[1.15rem]"
+      style={{ background: "var(--brand-solid)", color: "var(--brand-ink)" }}>{n > 99 ? "99+" : n}</span>
+  ) : null;
+
+function Shell({ user }: { user: User }) {
+  const { signOut } = useAuth();
   const [large, setLarge] = useLargeText();
   const { pathname } = useLocation();
-  if (loading) return <div className="app-root p-6"><SkeletonList rows={3} /></div>;
-  if (!user) return <Navigate to="/login" replace />;
+  const { chatUnreadTotal } = useNotifications();
 
   return (
     <div className="app-root mesh" data-role={user.role}>
@@ -37,11 +45,13 @@ export function Layout() {
                 className={({ isActive }) => cn("flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
                   isActive ? "bg-[var(--pill-ember-bg)] font-semibold text-[var(--pill-ember-fg)]" : "hover:bg-[var(--surface-2)]")}>
                 <Icon className="size-4" aria-hidden />{text}
+                {to === "/messages" && <CountBadge n={chatUnreadTotal} label="messages" />}
               </NavLink>
             ))}
           </nav>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
             {isMockChat && <span className="pill tone-amber whitespace-nowrap" title="Chat is simulated, not Nexconn">MOCK CHAT</span>}
+            {user.role !== "ngo" && <NotificationBell />}
             <ThemeToggle />
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium">
               Large text
@@ -55,8 +65,18 @@ export function Layout() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <div key={pathname} className="page-enter"><Outlet /></div>
       </main>
+      <AlertModal />
+      <LoginSummary />
     </div>
   );
+}
+
+export function Layout() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="app-root p-6"><SkeletonList rows={3} /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  // The provider lives here, so notifications and the single chat connection start right after sign-in and stop at sign-out.
+  return <NotificationsProvider><Shell user={user} /></NotificationsProvider>;
 }
 
 export function RequireRole({ roles, children }: { roles: Role[]; children: ReactNode }) {

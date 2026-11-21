@@ -4,7 +4,22 @@ import { getRepo, logEvent, newId } from "../store/repo";
 import { HttpError, activeAssignment, getIncident, isActive } from "./incidents";
 import { ensureRoomFor, removeVolunteerFromRoom } from "./rooms";
 import { rankVolunteers, type Candidate, type MatchResult } from "./matching";
+import { coordinators, notifyUsers, safely } from "./notifications";
+import { computePriority } from "./priority";
 import type { Assignment, Availability, Incident, User } from "../types";
+
+/** Tell a volunteer a coordinator approved them for an incident (they accept or decline from the notification or the dashboard). */
+async function offerNotification(incident: Incident, assignment: Assignment, volunteerId: string) {
+  await safely(async () => {
+    const volunteer = (await (await getRepo()).users()).find((u) => u.id === volunteerId);
+    if (!volunteer) return;
+    await notifyUsers([volunteer], {
+      type: "assignment_offer", priority: computePriority(incident).level, incident_id: incident.id,
+      title: `Assignment offer: ${incident.category}${incident.address_text ? ` · ${incident.address_text}` : ""}`,
+      body: incident.original_text.slice(0, 200), data: { assignment_id: assignment.id },
+    });
+  });
+}
 
 /**
  * Chat is secondary to the assignment: if Nexconn fails, the assignment (Supabase) still stands.
@@ -69,6 +84,7 @@ export async function assignVolunteer(coordinator: User, incidentId: string, vol
   const match = await pickEligible(incident, volunteerId);
   const assignment = await createAssignment(coordinator, incident, match);
   await logEvent(incident.id, coordinator.id, "assigned", { volunteer_id: volunteerId, score: match.breakdown?.total });
+  await offerNotification(incident, assignment, volunteerId);
   await syncChat(incident.id, () => ensureRoomFor(incident, coordinator.id, volunteerId));
   return assignment;
 }
@@ -88,11 +104,23 @@ export async function reassignVolunteer(coordinator: User, assignmentId: string,
   await logEvent(incident.id, coordinator.id, "reassigned", {
     from_volunteer_id: old.volunteer_id, volunteer_id: newVolunteerId, score: match.breakdown?.total,
   });
+  await offerNotification(incident, assignment, newVolunteerId);
   await syncChat(incident.id, async () => {
     await removeVolunteerFromRoom(incident.id, old.volunteer_id);
     await ensureRoomFor(incident, coordinator.id, newVolunteerId);
   });
   return assignment;
+}
+
+async function tellCoordinators(incident: Incident, volunteer: User, accepted: boolean) {
+  await safely(async () => {
+    await notifyUsers(await coordinators(), {
+      type: accepted ? "volunteer_accepted" : "volunteer_declined",
+      priority: accepted ? "medium" : "high", incident_id: incident.id,
+      title: `${volunteer.name} ${accepted ? "accepted" : "declined"} the ${incident.category} assignment`,
+      body: accepted ? "The incident room is open." : "The incident is back in the dispatch list.",
+    });
+  });
 }
 
 /** Volunteer answers an approved assignment. A decline puts the incident back in the matching list. */
@@ -110,12 +138,14 @@ export async function respondToAssignment(volunteer: User, assignmentId: string,
     await repo.saveAssignment(assignment);
     await repo.saveIncident(incident);
     await logEvent(incident.id, volunteer.id, "accepted");
+    await tellCoordinators(incident, volunteer, true);
   } else {
     assignment.status = "declined";
     incident.status = "verified"; // back to the coordinator's matching list
     await repo.saveAssignment(assignment);
     await repo.saveIncident(incident);
     await logEvent(incident.id, volunteer.id, "declined");
+    await tellCoordinators(incident, volunteer, false);
     await syncChat(incident.id, () => removeVolunteerFromRoom(incident.id, volunteer.id));
   }
   return assignment;

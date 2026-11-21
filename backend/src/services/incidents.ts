@@ -1,6 +1,8 @@
 import { getRepo, logEvent, newId } from "../store/repo";
 import { extractIncident, CATEGORIES, URGENCIES } from "./extraction";
 import { distanceKm } from "./matching";
+import { coordinators, notifyUsers, safely, volunteers } from "./notifications";
+import { computePriority, isHighOrCritical } from "./priority";
 import type { AiAnalysis, Assignment, Category, Incident, Urgency, User } from "../types";
 
 /** An error that carries an HTTP status, so routes can reply with the right code. */
@@ -26,6 +28,8 @@ export async function canSee(user: User, incident: Incident): Promise<boolean> {
   if (user.role === "coordinator") return true;
   if (user.role === "citizen") return incident.reporter_id === user.id;
   if (user.role === "volunteer") {
+    // A verified volunteer may see an active SOS (the point is to get responders there fast); unverified ones never do.
+    if (incident.is_sos && incident.sos_status === "active" && user.verified) return true;
     const mine = await (await getRepo()).assignments({ incident_id: incident.id, volunteer_id: user.id });
     return mine.some((a) => ["approved", "accepted", "completed"].includes(a.status)); // declined / replaced volunteers lose access
   }
@@ -74,6 +78,14 @@ export async function submitIncident(user: User, input: SubmitInput): Promise<In
   if (incident.possible_duplicate_of) {
     await logEvent(incident.id, null, "duplicate_flagged", { of: incident.possible_duplicate_of });
   }
+  await safely(async () => {
+    const p = computePriority(incident);
+    await notifyUsers(await coordinators(), {
+      type: "new_incident", priority: p.level, incident_id: incident.id,
+      title: `New ${incident.category} request${incident.address_text ? ` · ${incident.address_text}` : ""}`,
+      body: incident.original_text.slice(0, 220), data: { level: p.level },
+    });
+  });
   return incident;
 }
 
@@ -132,6 +144,17 @@ export async function verifyIncident(coordinator: User, incidentId: string, inpu
   await repo.saveIncident(incident);
   if (Object.keys(changes).length > 0) await logEvent(incident.id, coordinator.id, "edited", { changes });
   await logEvent(incident.id, coordinator.id, "verified");
+  await safely(async () => { // High / Critical incidents also alert the available verified volunteers (a coordinator still approves who goes)
+    const p = computePriority(incident);
+    if (!isHighOrCritical(p.level) || incident.is_sos) return;
+    const profiles = await repo.volunteerProfiles();
+    const free = (await volunteers(true)).filter((v) => profiles.find((x) => x.user_id === v.id)?.availability === "available");
+    await notifyUsers(free, {
+      type: "priority_alert", priority: p.level, incident_id: incident.id,
+      title: `${p.level === "critical" ? "Critical" : "High-priority"} incident needs responders`,
+      body: `${incident.category} · ${incident.address_text || "location on map"} · ${incident.people_affected ?? "unknown"} people`,
+    });
+  });
   return incident;
 }
 
@@ -147,6 +170,7 @@ export async function listIncidents(user: User) {
   const repo = await getRepo();
   const [all, assignments, nameOf] = await Promise.all([repo.incidents(), repo.assignments(), nameLookup()]);
   const out = [];
+  const now = Date.now();
   for (const i of [...all].sort((a, b) => b.created_at.localeCompare(a.created_at))) {
     if (!(await canSee(user, i))) continue;
     const forIncident = assignments.filter((x) => x.incident_id === i.id);
@@ -155,7 +179,7 @@ export async function listIncidents(user: User) {
       ? [...forIncident].reverse().find((x) => x.volunteer_id === user.id)
       : user.role === "coordinator" ? forIncident.find(isActive) : undefined;
     out.push({
-      ...i,
+      ...i, priority: computePriority(i, now),
       assignee: a ? { id: a.volunteer_id, name: nameOf(a.volunteer_id), status: a.status, assignment_id: a.id } : null,
     });
   }
@@ -178,7 +202,7 @@ export async function incidentDetail(user: User, incidentId: string) {
       ...a, resource_name: resources.find((r) => r.id === a.resource_id)?.name ?? "?",
     })) : [];
   return {
-    incident,
+    incident, priority: computePriority(incident),
     reporter: isCoordinator ? { id: incident.reporter_id, name: nameOf(incident.reporter_id) } : null,
     analysis, assignments, allocations,
     has_room: (await repo.channel(incident.id)) !== null,

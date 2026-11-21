@@ -5,8 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { config } from "../config";
 import type {
-  AiAnalysis, Assignment, Incident, IncidentChannel, IncidentEvent, Organisation, Resource,
-  ResourceAllocation, User, VolunteerProfile,
+  AiAnalysis, Assignment, ChannelKind, Incident, IncidentChannel, IncidentEvent, Notification, Organisation, Resource,
+  ResourceAllocation, SosAudio, User, VolunteerProfile,
 } from "../types";
 
 export interface Repo {
@@ -41,8 +41,15 @@ export interface Repo {
   addEvent(event: IncidentEvent): Promise<void>;
   // chat room ids (Nexconn group id per incident)
   channels(): Promise<IncidentChannel[]>;
-  channel(incidentId: string): Promise<IncidentChannel | null>;
+  channel(incidentId: string, kind?: ChannelKind): Promise<IncidentChannel | null>; // kind defaults to "operations"
   addChannel(channel: IncidentChannel): Promise<void>;
+  // notifications (one row per recipient)
+  notifications(userId: string): Promise<Notification[]>;
+  addNotification(n: Notification): Promise<void>;
+  markNotificationsRead(userId: string, ids: string[] | "all"): Promise<void>;
+  // SOS audio (private)
+  sosAudio(incidentId: string): Promise<SosAudio | null>;
+  saveSosAudio(a: SosAudio): Promise<void>;
 }
 
 let current: Repo | null = null;

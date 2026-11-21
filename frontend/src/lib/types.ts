@@ -22,8 +22,10 @@ export interface Incident {
   lat: number; lng: number; address_text: string;
   status: IncidentStatus; reject_reason: string | null; possible_duplicate_of: string | null;
   is_synthetic: boolean; created_at: string;
+  is_sos?: boolean; sos_status?: "active" | "cancelled" | null; sos_approximate?: boolean; priority_override?: Urgency | null;
 }
 export interface IncidentListItem extends Incident {
+  priority: Priority;
   assignee: { id: string; name: string; status: AssignmentStatus; assignment_id: string } | null;
 }
 
@@ -45,6 +47,7 @@ export interface Assignment {
 }
 export interface IncidentDetailData {
   incident: Incident;
+  priority: Priority;
   reporter: { id: string; name: string } | null;
   analysis: Analysis | null;
   assignments: Assignment[];
@@ -58,4 +61,18 @@ export interface IncidentEvent {
 export interface MatchResult {
   volunteer_id: string; name: string; eligible: boolean; excluded_reason: string | null;
   breakdown: ScoreBreakdown | null; reason: string;
+}
+
+// ---- v3: priority, notifications, SOS ----
+export interface Priority {
+  level: Urgency; score: number; reasons: string[]; waiting_minutes: number;
+  escalated: boolean; overridden: boolean; is_sos: boolean;
+}
+export type NotificationType =
+  | "new_incident" | "sos" | "sos_audio" | "sos_cancelled" | "priority_alert" | "assignment_offer"
+  | "volunteer_accepted" | "volunteer_declined" | "escalation" | "hub_alert" | "chat_message";
+export interface AppNotification {
+  id: string; recipient_user_id: string | null; recipient_role: Role | null; type: NotificationType;
+  priority: Urgency; incident_id: string | null; title: string; body: string;
+  data: Record<string, unknown>; created_at: string; read_at: string | null;
 }

@@ -39,6 +39,22 @@ export const memoryRepo: Repo = {
   addEvent: async (e) => { db.events.push(e); },
 
   channels: async () => db.channels,
-  channel: async (incidentId) => db.channels.find((c) => c.incident_id === incidentId) ?? null,
+  channel: async (incidentId, kind = "operations") =>
+    db.channels.find((c) => c.incident_id === incidentId && (c.kind ?? "operations") === kind) ?? null,
   addChannel: async (c) => { db.channels.push(c); },
+
+  notifications: async (userId) => db.notifications.filter((n) => n.recipient_user_id === userId),
+  addNotification: async (n) => { db.notifications.push(n); },
+  markNotificationsRead: async (userId, ids) => {
+    const at = new Date().toISOString();
+    for (const n of db.notifications) {
+      if (n.recipient_user_id === userId && !n.read_at && (ids === "all" || ids.includes(n.id))) n.read_at = at;
+    }
+  },
+
+  sosAudio: async (incidentId) => db.sosAudio.find((a) => a.incident_id === incidentId) ?? null,
+  saveSosAudio: async (a) => {
+    const i = db.sosAudio.findIndex((x) => x.incident_id === a.incident_id);
+    if (i >= 0) db.sosAudio[i] = a; else db.sosAudio.push(a);
+  },
 };
