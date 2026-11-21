@@ -1,5 +1,6 @@
 // Coordinator review: the citizen's original text on the left, the AI suggestion on the right (editable).
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,11 +36,11 @@ export function ReportVsAi({ data }: { data: IncidentDetailData }) {
         <CardContent className="space-y-1 text-sm">
           {analysis ? (
             <>
-              <p><b>Category:</b> {analysis.extracted_data.category}</p>
-              <div className="flex items-center gap-3"><p><b>Urgency:</b> {analysis.extracted_data.urgency}</p><UrgencyGauge urgency={analysis.extracted_data.urgency} size={56} /></div>
-              <p><b>People:</b> {analysis.extracted_data.people_affected ?? "unknown"}</p>
-              <p><b>Needs:</b> {analysis.extracted_data.needs.join(", ") || "none detected"}</p>
-              <p><b>Vulnerable:</b> {analysis.extracted_data.vulnerable_persons.join(", ") || "none detected"}</p>
+              <p className="field-pop shimmer-in" style={{ "--d": "100ms" } as React.CSSProperties}><b>Category:</b> {analysis.extracted_data.category}</p>
+              <div className="field-pop shimmer-in flex items-center gap-3" style={{ "--d": "300ms" } as React.CSSProperties}><p><b>Urgency:</b> {analysis.extracted_data.urgency}</p><UrgencyGauge urgency={analysis.extracted_data.urgency} size={56} /></div>
+              <p className="field-pop shimmer-in" style={{ "--d": "500ms" } as React.CSSProperties}><b>People:</b> {analysis.extracted_data.people_affected ?? "unknown"}</p>
+              <p className="field-pop shimmer-in" style={{ "--d": "700ms" } as React.CSSProperties}><b>Needs:</b> {analysis.extracted_data.needs.join(", ") || "none detected"}</p>
+              <p className="field-pop shimmer-in" style={{ "--d": "900ms" } as React.CSSProperties}><b>Vulnerable:</b> {analysis.extracted_data.vulnerable_persons.join(", ") || "none detected"}</p>
               {analysis.extracted_data.missing_info.length > 0 && (
                 <p className="text-amber-800"><b>Missing:</b> {analysis.extracted_data.missing_info.join("; ")}</p>
               )}
@@ -64,6 +65,7 @@ export function VerifyPanel({ data, onDone }: { data: IncidentDetailData; onDone
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const toast = useToast();
 
   const send = async (decision: "verify" | "reject") => {
@@ -81,7 +83,7 @@ export function VerifyPanel({ data, onDone }: { data: IncidentDetailData; onDone
         },
       });
       toast(decision === "verify" ? "Incident approved for dispatch" : "Incident rejected");
-      onDone();
+      if (decision === "verify") { setConfirmed(true); setTimeout(onDone, 900); } else onDone(); // let the confirmed state show briefly
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -118,7 +120,7 @@ export function VerifyPanel({ data, onDone }: { data: IncidentDetailData; onDone
         </label>
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div className="flex gap-2">
-          <Button variant="physical" size="lg" disabled={busy} onClick={() => send("verify")}>Verify incident</Button>
+          <Button variant="physical" size="lg" disabled={busy || confirmed} className={confirmed ? "btn-confirmed" : ""} onClick={() => send("verify")}>{confirmed ? <><Check className="size-4" aria-hidden />Verified</> : "Verify incident"}</Button>
           <Button size="lg" disabled={busy} variant="destructive" onClick={() => send("reject")}>Reject</Button>
         </div>
       </CardContent>

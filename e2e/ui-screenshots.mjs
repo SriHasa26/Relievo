@@ -1,80 +1,110 @@
-// Takes screenshots of every main screen at 1440 and 390 px width into docs/ui-screenshots/ (synthetic data only).
+// Screenshots of the landing page (every section) and each role's main screens, in light and dark, at 1440 and 390 px,
+// into docs/ui-screenshots/ (JPEG, synthetic data only).
 // Needs the app running against MOCK data:  MOCK_CHAT=true MOCK_AI=true MOCK_DB=true VITE_MOCK_CHAT=true npm run dev
-// Run:  node e2e/ui-screenshots.mjs      (from the repo root)
+// Run (from the repo root):  node e2e/ui-screenshots.mjs
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
 
-const OUT = "docs/ui-screenshots";
+const OUT = process.env.OUT ?? "docs/ui-screenshots";
 const BASE = process.env.BASE_URL ?? "http://localhost:5173";
 fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
+const jpg = { type: "jpeg", quality: 78 };
 
 async function login(page, name) {
   await page.goto(`${BASE}/login`);
   await page.getByRole("button", { name: new RegExp(`^${name}`) }).click();
   await page.waitForURL((u) => !u.pathname.includes("login"));
 }
-async function snap(page, tag, w, name) {
-  await page.waitForTimeout(700); // let counters / map tiles settle
-  await page.screenshot({ path: `${OUT}/${tag}-${name}.png`, fullPage: true });
-  console.log("shot", `${tag}-${name}`);
-}
 
-for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
-  const ctx = async () => browser.newContext({ viewport: { width: w, height: h }, reducedMotion: "reduce" });
+for (const theme of ["dark", "light"]) {
+  for (const [w, h] of [[1440, 900], [390, 844]]) {
+    const tag = `${theme}-${w}`;
+    const snap = async (page, name) => {
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: `${OUT}/${tag}-${name}.jpg`, fullPage: true, ...jpg });
+      console.log("shot", `${tag}-${name}`);
+    };
+    const ctx = async (reduced) => {
+      const c = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: reduced ? "reduce" : "no-preference" });
+      await c.addInitScript((t) => { try { localStorage.setItem("rr-theme", t); } catch { /* ignore */ } }, theme);
+      return c;
+    };
 
-  // login
-  let c = await ctx(), p = await c.newPage();
-  await p.goto(`${BASE}/login`);
-  await p.getByRole("heading", { name: "Demo role switcher" }).waitFor();
-  await snap(p, tag, w, "01-login");
-  await c.close();
+    // ---- landing (motion on, so the 3D workflow is the real scroll-driven scene on desktop) ----
+    let c = await ctx(false), p = await c.newPage();
+    p.on("pageerror", (e) => console.log("PAGE ERROR", e.message));
+    await p.goto(`${BASE}/login`);
+    await p.waitForTimeout(1600);
+    await p.screenshot({ path: `${OUT}/${tag}-landing-1-hero.jpg`, ...jpg });
+    for (const [id, name] of [["capabilities", "2-capabilities"], ["rooms", "4-rooms"], ["signin", "5-signin"]]) {
+      await p.locator(`#${id}`).scrollIntoViewIfNeeded();
+      await p.waitForTimeout(1500);
+      await p.locator(`#${id}`).screenshot({ path: `${OUT}/${tag}-landing-${name}.jpg`, ...jpg });
+    }
+    const top = await p.locator("#workflow").evaluate((e) => e.getBoundingClientRect().top + scrollY);
+    if (w >= 768) {
+      for (const [k, name] of [[0.12, "3a-workflow"], [0.5, "3b-workflow"], [0.88, "3c-workflow"]]) {
+        await p.evaluate(([t, k]) => scrollTo(0, t + k * (document.querySelector("#workflow").offsetHeight - innerHeight)), [top, k]);
+        await p.waitForTimeout(1600);
+        await p.screenshot({ path: `${OUT}/${tag}-landing-${name}.jpg`, ...jpg });
+      }
+    } else {
+      await p.locator("#workflow").scrollIntoViewIfNeeded();
+      await p.waitForTimeout(1500);
+      await p.locator("#workflow").screenshot({ path: `${OUT}/${tag}-landing-3-workflow.jpg`, ...jpg });
+    }
+    await p.locator("footer").scrollIntoViewIfNeeded();
+    await p.locator("footer").screenshot({ path: `${OUT}/${tag}-landing-6-footer.jpg`, ...jpg });
+    await c.close();
 
-  // citizen
-  c = await ctx(); p = await c.newPage();
-  await login(p, "Asha Rao");
-  await p.getByText("SYNTHETIC DEMO DATA").waitFor();
-  await snap(p, tag, w, "02-citizen-requests");
-  await p.goto(`${BASE}/citizen/new`);
-  await snap(p, tag, w, "03-citizen-new-request");
-  await p.getByPlaceholder(/Water is entering/).fill("Water is entering our ground floor."); await p.getByRole("button", { name: "Send request" }).click(); // no location chosen: shows the validation message
-  await snap(p, tag, w, "04-citizen-validation");
-  await p.goto(`${BASE}/citizen`);
-  const mine = await p.locator('a[href^="/incidents/"]').first().getAttribute("href");
-  if (mine) { await p.goto(`${BASE}${mine}`); await snap(p, tag, w, "05-citizen-incident"); }
-  await c.close();
+    // ---- citizen ----
+    c = await ctx(true); p = await c.newPage();
+    await login(p, "Asha Rao");
+    await p.getByRole("heading", { name: "My requests" }).waitFor();
+    await snap(p, "citizen-1-requests");
+    await p.goto(`${BASE}/citizen/new`);
+    await p.getByPlaceholder(/Water is entering/).fill("Water is entering our ground floor. Six people need drinking water.");
+    await p.getByLabel("Number of people affected").fill("6");
+    await p.getByLabel("Pick a known place").selectOption("Riverside Colony");
+    await snap(p, "citizen-2-new-request");
+    await p.goto(`${BASE}/citizen`);
+    const mine = await p.locator('a[href^="/incidents/"]').first().getAttribute("href");
+    if (mine) { await p.goto(`${BASE}${mine}`); await snap(p, "citizen-3-incident"); }
+    await c.close();
 
-  // coordinator
-  c = await ctx(); p = await c.newPage();
-  await login(p, "Coordinator Priya");
-  await p.getByRole("button", { name: /Everything/ }).click();
-  await snap(p, tag, w, "06-coordinator-command-centre");
-  const hrefs = await p.locator('a[href^="/incidents/"]').evaluateAll((els) => els.map((e) => e.getAttribute("href")));
-  const seen = new Set();
-  for (const href of hrefs) {
-    await p.goto(`${BASE}${href}`);
-    await p.waitForTimeout(500);
-    const feature =
-      (await p.getByRole("button", { name: "Verify incident" }).count()) ? "07-coordinator-verify"
-        : (await p.getByRole("button", { name: "Approve assignment" }).count()) ? "08-coordinator-matching"
-          : (await p.getByLabel("Message").count()) ? "09-coordinator-incident-chat" : null;
-    if (feature && !seen.has(feature)) { seen.add(feature); await snap(p, tag, w, feature); }
+    // ---- coordinator ----
+    c = await ctx(true); p = await c.newPage();
+    await login(p, "Coordinator Priya");
+    await p.getByRole("button", { name: /Everything/ }).click();
+    await snap(p, "coord-1-command-centre");
+    const hrefs = await p.locator('a[href^="/incidents/"]').evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+    const seen = new Set();
+    for (const href of hrefs) {
+      await p.goto(`${BASE}${href}`);
+      await p.waitForTimeout(500);
+      const feature =
+        (await p.getByRole("button", { name: "Verify incident" }).count()) ? "coord-2-verify"
+          : (await p.getByRole("button", { name: "Approve assignment" }).count()) ? "coord-3-matching"
+            : (await p.getByLabel("Message").count()) ? "coord-4-incident-chat" : null;
+      if (feature && !seen.has(feature)) { seen.add(feature); await snap(p, feature); }
+    }
+    for (const [path, name] of [["/impact", "coord-5-impact"], ["/resources", "coord-6-resources"], ["/messages", "coord-7-messages"]]) {
+      await p.goto(`${BASE}${path}`);
+      await snap(p, name);
+    }
+    await p.goto(`${BASE}/coordinator`);
+    await p.getByRole("switch", { name: "Large text" }).click();
+    await snap(p, "coord-8-large-text");
+    await c.close();
+
+    // ---- volunteer ----
+    c = await ctx(true); p = await c.newPage();
+    await login(p, "Sana Khan");
+    await snap(p, "vol-1-assignments");
+    const v = await p.locator('a[href^="/incidents/"]').first().getAttribute("href").catch(() => null);
+    if (v) { await p.goto(`${BASE}${v}`); await snap(p, "vol-2-incident"); }
+    await c.close();
   }
-  for (const [path, name] of [["/impact", "10-impact"], ["/resources", "11-resources"], ["/messages", "12-messages"]]) {
-    await p.goto(`${BASE}${path}`);
-    await snap(p, tag, w, name);
-  }
-  await p.goto(`${BASE}/coordinator`);
-  await p.getByRole("switch", { name: "Large text" }).click();
-  await snap(p, tag, w, "13-coordinator-large-text");
-  await c.close();
-
-  // volunteer
-  c = await ctx(); p = await c.newPage();
-  await login(p, "Sana Khan");
-  await snap(p, tag, w, "14-volunteer-assignments");
-  const v = await p.locator('a[href^="/incidents/"]').first().getAttribute("href").catch(() => null);
-  if (v) { await p.goto(`${BASE}${v}`); await snap(p, tag, w, "15-volunteer-incident"); }
-  await c.close();
 }
 await browser.close();

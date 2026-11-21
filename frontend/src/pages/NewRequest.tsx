@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CircleAlert, MapPin, Send } from "lucide-react";
+import { Check, CircleAlert, MapPin, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LocationPicker } from "@/components/MapView";
 import { NeuToggle, SuccessCheck, useToast } from "@/components/kit";
@@ -20,6 +20,11 @@ export default function NewRequest() {
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const toast = useToast();
+
+  // Stepwise feel: the stepper lights up as each part is filled in (all fields stay on one page).
+  const steps: Array<[string, boolean]> = [
+    ["Describe", text.trim().length > 0], ["People", people !== ""], ["Location", loc !== null], ["Review", text.trim().length > 0 && loc !== null],
+  ];
 
   const pickPlace = (name: string) => {
     setPlace(name);
@@ -57,6 +62,16 @@ export default function NewRequest() {
         Large text
       </label>
 
+      <ol aria-label="Progress" className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {steps.map(([name, done], i) => (
+          <li key={name} className="flex items-center gap-2 text-xs font-semibold">
+            <span className={`step-dot ${done ? "done" : ""}`}>{done ? <Check className="size-3.5" aria-hidden /> : i + 1}</span>
+            <span className={done ? "" : "muted"}>{name}</span>
+            {i < steps.length - 1 && <span aria-hidden className="h-px w-3 sm:w-8" style={{ background: "var(--border)" }} />}
+          </li>
+        ))}
+      </ol>
+
       <Card>
         <CardHeader><CardTitle>What do you need?</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -92,15 +107,31 @@ export default function NewRequest() {
         </CardContent>
       </Card>
 
+      {text.trim() && loc && (
+        <Card className="fresh-in">
+          <CardHeader><CardTitle>Review before sending</CardTitle></CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <p className="line-clamp-3">{text}</p>
+            <p className="muted">{people ? `${people} people` : "Number of people not given"} · {place || `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`}</p>
+          </CardContent>
+        </Card>
+      )}
       {error && (
-        <p role="alert" className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+        <p role="alert" key={error} className="shake-once flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
           <CircleAlert className="size-4 shrink-0" aria-hidden />{error}
         </p>
       )}
       <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy}><Send className="size-4" aria-hidden />{busy ? "Sending…" : "Send request"}</Button>
       {sent && (
-        <div aria-live="polite" className="toast absolute inset-0 z-[1000] grid place-items-center rounded-2xl bg-white/90">
-          <div className="flex flex-col items-center gap-2"><SuccessCheck size={64} /><p className="text-lg font-bold text-slate-900">Request sent</p></div>
+        <div aria-live="polite" className="toast absolute inset-0 z-[1000] grid place-items-center rounded-2xl" style={{ background: "color-mix(in srgb, var(--surface) 94%, transparent)" }}>
+          <div className="flex flex-col items-center gap-3 px-4">
+            <SuccessCheck size={64} /><p className="text-lg font-bold">Request sent</p>
+            <ol className="space-y-1 text-sm muted">
+              {[["Request submitted", true], ["AI analysis (suggestion only)", false], ["Coordinator verification", false], ["Volunteer assigned", false]].map(([t, on]) => (
+                <li key={String(t)} className="flex items-center gap-2"><i aria-hidden className={`led ${on ? "tone-green led-glow" : "tone-gray"}`} />{t}</li>
+              ))}
+            </ol>
+          </div>
         </div>
       )}
     </form>

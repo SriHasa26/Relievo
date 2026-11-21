@@ -53,8 +53,9 @@ export default function Impact() {
     <div className="space-y-4">
       <h1 className="flex items-center gap-2 text-2xl font-bold"><BarChart3 className="size-6 text-brand" aria-hidden />Impact dashboard</h1>
       {m.synthetic && (
-        <p className="rounded bg-amber-50 p-2 text-sm text-amber-900">
-          All figures are computed from <b>synthetic demo data</b> and the incident event log. They are not real-world results.
+        <p className="flex flex-wrap items-center gap-2 text-sm muted">
+          <span className="pill tone-amber">Demo data</span>
+          Computed from the incident event log. Not real-world results.
         </p>
       )}
       <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
