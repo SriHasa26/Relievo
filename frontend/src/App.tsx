@@ -5,6 +5,7 @@ import CommandCentre from "@/pages/CommandCentre";
 import Impact from "@/pages/Impact";
 import IncidentDetail from "@/pages/IncidentDetail";
 import IncidentList from "@/pages/IncidentList";
+import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
 import Resources from "@/pages/Resources";
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/welcome" element={<Landing />} />
       {UiKit && <Route path="/ui-kit" element={<Suspense fallback={null}><UiKit /></Suspense>} />}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
