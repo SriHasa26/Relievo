@@ -93,7 +93,16 @@ export function createSupabaseRepo(sb: SupabaseClient = createServiceClient()): 
     channels: async () => select("incident_channels"),
     channel: async (incidentId, kind = "operations") => {
       const { data, error } = await sb.from("incident_channels").select("*").eq("incident_id", incidentId).eq("kind", kind).maybeSingle();
-      if (error) fail("select incident_channels", error);
+      if (error) {
+        // The v3 migration (adds the `kind` column) is not applied yet: the only room that can exist is the operations room.
+        if (/kind/i.test(error.message)) {
+          if (kind !== "operations") return null;
+          const legacy = await sb.from("incident_channels").select("*").eq("incident_id", incidentId).maybeSingle();
+          if (legacy.error) fail("select incident_channels", legacy.error);
+          return (legacy.data as never) ?? null;
+        }
+        fail("select incident_channels", error);
+      }
       return (data as never) ?? null;
     },
     addChannel: async (c) => insert("incident_channels", c),

@@ -111,3 +111,9 @@ Use two different browser profiles (or one normal and one private window).
 
 If something fails: Render → Logs (backend) and the browser console (frontend). Nexconn problems show in the chat panel as
 "Chat problem" with a Retry button.
+
+## 9. v3 upgrade (notifications, SOS, citizen chat, Volunteer Hub)
+1. Supabase → SQL editor → paste and run `supabase/migrations/0003_v3_notifications_sos_rooms.sql` (also the last block of `supabase/all_migrations.sql`). It is idempotent.
+2. From your computer: `npm run verify:schema -w backend` should print "Migration 0003 is applied."
+3. Deploy backend (Render) and frontend (Vercel) as usual. Until step 1 is done the existing features keep working; notifications, SOS and the citizen chat need the migration.
+4. Before recording or submitting: `npm run reset:demo -w backend` puts the demo back to the seed data.

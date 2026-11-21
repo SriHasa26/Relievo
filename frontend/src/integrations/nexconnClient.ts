@@ -61,7 +61,9 @@ function toChatMessage(raw: RawMessage, me: string): ChatMessage {
 function deliver(raw: RawMessage) {
   const me = mock.me;
   if (!me) return;
-  const relevant = raw.kind === "group" ? mock.joined.has(raw.target) : raw.target === me || raw.senderId === me;
+  // Mock only: every tab hears every group (the real service delivers to members only). The UI filters by conversation, and the
+  // app-level notification listener needs rooms the tab is not currently showing.
+  const relevant = raw.kind === "group" ? true : raw.target === me || raw.senderId === me;
   if (!relevant) return;
   const msg = toChatMessage(raw, me);
   mock.messageListeners.forEach((l) => l(msg));

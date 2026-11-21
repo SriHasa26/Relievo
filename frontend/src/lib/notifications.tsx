@@ -32,6 +32,10 @@ interface State {
   markRead: (ids: string[]) => Promise<void>;
   markAllRead: () => Promise<void>;
   clearChat: (key: string) => void;
+  /** Accept or decline an assignment offer straight from its notification. Resolves to an error message, or null on success. */
+  respondOffer: (n: AppNotification, accept: boolean) => Promise<string | null>;
+  /** Offers already answered in this session (their buttons go away). */
+  answered: Set<string>;
   refresh: () => Promise<void>;
 }
 const Ctx = createContext<State | null>(null);
@@ -46,6 +50,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [chat, setChat] = useState<AppNotification[]>([]);
   const [chatUnread, setChatUnread] = useState<Record<string, number>>({});
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [answered, setAnswered] = useState<Set<string>>(new Set());
   const [queue, setQueue] = useState<AppNotification[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -140,6 +145,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setChat((c) => c.map((n) => (n.data.conversation === key ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n)));
   }, []);
 
+  const respondOffer = useCallback(async (n: AppNotification, accept: boolean) => {
+    try {
+      await api(`/api/assignments/${String(n.data.assignment_id)}/respond`, { body: { accept } });
+      setAnswered((a) => new Set([...a, n.id]));
+      await markRead([n.id]);
+      await refresh();
+      return null;
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (/already/i.test(msg)) setAnswered((a) => new Set([...a, n.id])); // answered elsewhere (for example on the dashboard)
+      return msg;
+    }
+  }, [markRead, refresh]);
+
   // reset when the person signs out (the provider unmounts) so the next login starts clean
   useEffect(() => () => { popped.current.clear(); firstLoad.current = true; }, [user?.id]);
 
@@ -149,9 +168,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return {
       items, unread: items.filter((n) => !n.read_at).length, chatUnread, chatUnreadTotal: chatTotal, rooms,
       popup: queue[0] ?? null, queued: Math.max(0, queue.length - 1),
-      summary, summaryOpen, closeSummary: () => setSummaryOpen(false), dismissPopup, markRead, markAllRead, clearChat, refresh,
+      summary, summaryOpen, closeSummary: () => setSummaryOpen(false), dismissPopup, markRead, markAllRead, clearChat, refresh, respondOffer, answered,
     };
-  }, [server, chat, chatUnread, rooms, queue, summary, summaryOpen, dismissPopup, markRead, markAllRead, clearChat, refresh]);
+  }, [server, chat, chatUnread, rooms, answered, respondOffer, queue, summary, summaryOpen, dismissPopup, markRead, markAllRead, clearChat, refresh]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -5,7 +5,6 @@ import { Bell, CalendarClock, Check, MessageSquare, Siren, TriangleAlert, UserCh
 import { SosAudioPlayer } from "@/components/SosAudio";
 import { useToast } from "@/components/kit";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/lib/notifications";
 import type { AppNotification, NotificationType } from "@/lib/types";
@@ -31,7 +30,7 @@ function useOpenIncident() {
 
 /* ---------- bell with unread badge and the notification centre ---------- */
 export function NotificationBell() {
-  const { items, unread, markAllRead, markRead, refresh } = useNotifications();
+  const { items, unread, markAllRead, respondOffer, answered } = useNotifications();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -48,12 +47,8 @@ export function NotificationBell() {
   }, [open]);
 
   const respond = async (n: AppNotification, accept: boolean) => {
-    try {
-      await api(`/api/assignments/${String(n.data.assignment_id)}/respond`, { body: { accept } });
-      toast(accept ? "Assignment accepted" : "Assignment declined");
-      await markRead([n.id]);
-      await refresh();
-    } catch (e) { toast((e as Error).message, "error"); }
+    const problem = await respondOffer(n, accept);
+    if (problem) toast(problem, "error"); else toast(accept ? "Assignment accepted" : "Assignment declined");
   };
 
   // High / Critical unread items are pinned at the top and styled red.
@@ -76,7 +71,7 @@ export function NotificationBell() {
             {n.body && <p className="line-clamp-2 text-xs muted">{n.body}</p>}
             <p className="mt-0.5 text-[0.7rem] muted">{timeAgo(n.created_at)}</p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {n.type === "assignment_offer" && user?.role === "volunteer" && !n.read_at && (
+              {n.type === "assignment_offer" && user?.role === "volunteer" && !answered.has(n.id) && (
                 <>
                   <Button size="sm" onClick={() => void respond(n, true)}>Accept</Button>
                   <Button size="sm" variant="outline" onClick={() => void respond(n, false)}>Decline</Button>
@@ -121,7 +116,8 @@ export function NotificationBell() {
 
 /* ---------- red alert popup (High / Critical), queued ---------- */
 export function AlertModal() {
-  const { popup, queued, dismissPopup } = useNotifications();
+  const { popup, queued, dismissPopup, respondOffer, answered } = useNotifications();
+  const toast = useToast();
   const openIt = useOpenIncident();
   const { dismissPopup: dismiss } = useNotifications();
   const primary = useRef<HTMLButtonElement>(null);
@@ -154,6 +150,12 @@ export function AlertModal() {
           <div className="mt-5 flex flex-wrap gap-2">
             {popup.incident_id && !generic && (
               <button ref={primary} type="button" className="rr-btn btn-physical h-11 px-5 text-sm" onClick={() => { openIt(popup); dismiss(); }}>Open incident</button>
+            )}
+            {popup.type === "assignment_offer" && !answered.has(popup.id) && (
+              <>
+                <Button size="lg" onClick={() => void respondOffer(popup, true).then((e) => { if (e) toast(e, "error"); else { toast("Assignment accepted"); dismiss(); } })}>Accept</Button>
+                <Button size="lg" variant="outline" onClick={() => void respondOffer(popup, false).then((e) => { if (e) toast(e, "error"); else { toast("Assignment declined"); dismiss(); } })}>Decline</Button>
+              </>
             )}
             <Button ref={popup.incident_id && !generic ? undefined : primary} variant="outline" size="lg" onClick={dismissPopup}>
               <X className="size-4" aria-hidden />Dismiss

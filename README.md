@@ -22,6 +22,33 @@ All four share the password `demo1234`. They hold synthetic sample data only.
 
 Check sign-in on any deployment: `BASE_URL=https://<your-vercel-url> node e2e/signin-check.mjs` (prints PASS/FAIL per role).
 
+## Feature guide (v3)
+
+| Feature | Who | Where |
+|---|---|---|
+| **EMERGENCY SOS**: one tap creates a Critical, SOS-flagged incident at once (device location, or the last known place marked approximate), alerts every coordinator and verified volunteer, then records audio with a live transcript (Stop, silence or 45 s) and uploads it to the same incident. "I am safe / cancel SOS" ends it. One active SOS per citizen. | Citizen | red button in the nav and on My requests |
+| **Voice-to-text** with English (India), Hindi and Telugu | everyone | mic button on the New request description, the citizen chat, incident chat, Volunteer Hub and direct messages |
+| **Notifications**: bell, unread badge, notification centre; High/Critical items pop up as a red alert (queued, no sound, honours reduced motion); coordinators get a summary right after login | coordinator, volunteer, citizen | header bell; polls every 5 s while the tab is visible |
+| **Priority queue**: SOS and Critical pinned on top, waiting timers, filter by priority and status; explainable score ([docs/PRIORITY.md](docs/PRIORITY.md)) | coordinator | Command centre |
+| **Dispatch board**: unassigned incidents in priority order with the best available volunteer, no volunteer suggested twice; approve one by one or **Approve all suggested**; manual override | coordinator | Dispatch board |
+| **Citizen chat**: a separate Nexconn group per incident (citizen + accepted volunteer + coordinator), opens when a volunteer accepts | citizen, volunteer, coordinator | below the status timeline |
+| **Volunteer Hub**: one persistent group with all volunteers and coordinators | volunteer, coordinator | nav "Volunteer Hub", Messages tab |
+
+Voice input uses the browser's Web Speech API, which works in **Chrome and Edge** (HTTPS or localhost). Other browsers get a clear message and can
+still type; in an SOS the audio is recorded even when transcription is unavailable.
+
+Tools:
+
+```bash
+npm run verify:schema -w backend   # has supabase/migrations/0003 been applied?
+npm run reset:demo -w backend      # put the live demo back to the seed (run before recording / submitting)
+npm run e2e:v3       # v3 feature tests on the mock stack (fake microphone, scripted speech recognition)
+npm run e2e:chat                   # real Nexconn / Supabase chat tests (set MOCK_AI=true to save AI quota)
+```
+
+Abuse protection: per-IP and per-user rate limits on incident submit, SOS, SOS audio, chat token and login, with a friendly message
+(the demo accounts and their password are public).
+
 ## Run (mock flags, no keys needed)
 
 ```bash

@@ -13,6 +13,16 @@ let coordCtx: BrowserContext, volCtx: BrowserContext;
 let coord: Page, vol: Page;
 
 async function login(page: Page, name: RegExp) {
+  // Alerts and the coordinator summary are part of the product (v3); these older tests are not about them, so dismiss them when they block a click.
+  await page.addLocatorHandler(page.getByRole("alertdialog"), async () => {
+    for (let i = 0; i < 12 && (await page.getByRole("alertdialog").count()) > 0; i++) {
+      await page.getByRole("alertdialog").getByRole("button", { name: "Dismiss", exact: true }).click();
+      await page.waitForTimeout(150);
+    }
+  });
+  await page.addLocatorHandler(page.getByRole("dialog", { name: "While you were away" }), async () => {
+    await page.getByRole("dialog", { name: "While you were away" }).getByRole("button", { name: "Close" }).click();
+  });
   await page.goto("/login");
   await page.getByRole("button", { name }).click();
   await expect(page.getByRole("heading", { name: "Demo role switcher" })).toHaveCount(0);
