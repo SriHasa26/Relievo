@@ -174,7 +174,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 .ping-critical { animation-duration: 1.6s; }
 .chip-float { animation: float 6s ease-in-out infinite; animation-delay: var(--d, 0s); }
 .pipe-stage { perspective: 1500px; }
-.pipe-world { transform-style: preserve-3d; transform: rotateX(8deg) rotateY(-14deg); }
+.pipe-world { transform-style: preserve-3d; transform: rotateX(5deg) rotateY(-9deg); }
 .pipe-card { position: absolute; inset: 0; margin: auto; will-change: transform, opacity; }
 .beam { position: relative; height: 4px; border-radius: 9999px; background: var(--border); overflow: hidden; }
 .beam > i { position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--p, 0)); background: linear-gradient(90deg, var(--led-teal), var(--led-ember)); box-shadow: 0 0 12px var(--led-ember); }
